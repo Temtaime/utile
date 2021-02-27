@@ -23,12 +23,12 @@
 */
 #define _POSIX_SOURCE
 
-#include <io.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <errno.h>
 
 #ifdef _WIN32
+#include <io.h>
 #include <windows.h>
 #else
 #include <unistd.h>
