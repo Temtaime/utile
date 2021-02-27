@@ -158,7 +158,7 @@ int cc_fprintf(cc_color_t color, FILE* stream, const char* format, ...) {
 
     va_start(ap, format);
 
-    if (!_isatty(_fileno(stream)) || (stream != stdout && stream != stderr)) {
+    if (!isatty(fileno(stream)) || (stream != stdout && stream != stderr)) {
         result = Write(stream, format, ap);
         goto finish;
     }
