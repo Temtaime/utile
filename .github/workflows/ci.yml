@@ -38,7 +38,7 @@ jobs:
           ar rcs libutile.a *.o
           git add libutile.a
           
-      - if: matrix.os == windows-latest
+      - if: matrix.os == 'windows-latest'
         working-directory: lib
         run: |
           lib /OUT:utile_${{ matrix.arch }}.lib *.o
