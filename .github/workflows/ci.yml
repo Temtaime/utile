@@ -22,7 +22,7 @@ jobs:
           
       - working-directory: lib
         run: |
-          clang -o utile_${{ matrix.arch }}.lib -fno-stack-protector -O3 -msse3 -DNDEBUG -DMINIZ_NO_ZLIB_APIS -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES *.c -fuse-ld=llvm-lib
+          clang -Brepro -o utile_${{ matrix.arch }}.lib -fno-stack-protector -O3 -msse3 -DNDEBUG -DMINIZ_NO_ZLIB_APIS -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES *.c -fuse-ld=llvm-lib
 
       - uses: actions/upload-artifact@v2
         with:
