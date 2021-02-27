@@ -45,5 +45,5 @@ jobs:
 
       - name: Run a multi-line script
         run: |
-          cl /?
+          clang -v
 
