@@ -27,7 +27,9 @@ jobs:
           
       - working-directory: lib
         run: |
-          clang -c -fno-stack-protector -O3 -msse3 -DNDEBUG -DMINIZ_NO_ZLIB_APIS -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES *.c
+          clang -fno-stack-protector -O3 -msse3 -DNDEBUG -DMINIZ_NO_ZLIB_APIS -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES *.c -fuse-ld=llvm-lib
+          ls -l
+          false
 
       - if: matrix.os == 'ubuntu-20.04'
         working-directory: lib
