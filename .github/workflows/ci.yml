@@ -25,8 +25,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: ilammy/msvc-dev-cmd@v1
+      - uses: dlang-community/setup-dlang@v1
+        with:
+          compiler: ldc-latest
 
       - name: Run a multi-line script
         run: |
-          clang -v
+          ldc --help
 
