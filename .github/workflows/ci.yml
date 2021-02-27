@@ -39,6 +39,7 @@ jobs:
           rm $NAME
           ar rcs $NAME *.o
           git add $NAME
+          git status
           ls -l $NAME
           
       - if: matrix.os == 'windows-latest2'
