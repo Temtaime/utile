@@ -35,17 +35,18 @@ jobs:
       - if: matrix.os == 'ubuntu-20.04'
         working-directory: lib
         run: |
-          mkdir ../bin
-          ar rcs ../bin/libutile.a *.o
-          git add ../bin/libutile.a
-          git commit -m "generated"
-          git push
+          NAME=./bin/libutile.a
+          rm $NAME
+          ar rcs $NAME *.o
+          git add $NAME
           
       - if: matrix.os == 'windows-latest2'
         working-directory: lib
         run: |
           lib /OUT:../bin/utile_${{ matrix.arch }}.lib *.o
           git add ../bin/utile_${{ matrix.arch }}.lib
+          
+      - run: |
           git commit -m "generated"
           git push
           
