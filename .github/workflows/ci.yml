@@ -14,10 +14,10 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Run a multi-line script
-        run: |
-          gcc -v
-          clang -v
+      - run: |
+          cd lib
+          clang -fno-stack-protector -O3 -msse3 -DNDEBUG -DMINIZ_NO_ZLIB_APIS -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -c *.c 
+          ls
           
   build-win:
     runs-on: windows-latest
