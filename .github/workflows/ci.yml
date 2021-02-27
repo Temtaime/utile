@@ -27,20 +27,12 @@ jobs:
           
       - working-directory: lib
         run: |
-          clang -c -fno-stack-protector -O3 -msse3 -DNDEBUG -DMINIZ_NO_ZLIB_APIS -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES *.c 
+          clang -c -fno-stack-protector -O3 -msse3 -DNDEBUG -DMINIZ_NO_ZLIB_APIS -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES *.c
 
-          git config user.name github-actions
-          git config user.email github-actions@github.com
-          
       - if: matrix.os == 'ubuntu-20.04'
         working-directory: lib
         run: |
-          NAME=../bin/libutile.a
-          rm $NAME
-          ar rcs $NAME *.o
-          git add -u
-          git status
-          ls -l $NAME
+          ar rcs libutile.a *.o
           
       - if: matrix.os == 'windows-latest2'
         working-directory: lib
@@ -49,9 +41,11 @@ jobs:
           lib /OUT:$name *.o
           git add $name
           
-      - run: |
-          git commit -m "generated"
-          git push
+      - uses: actions/upload-artifact@v2
+        with:
+          path: |
+            lib/*.a
+            lib/*.lib
           
       - uses: dlang-community/setup-dlang@v1
         with:
@@ -61,6 +55,20 @@ jobs:
           pwd
           ls
 
-
-
+  commit:
+    runs-on: ubuntu-20.04
+    needs: build
+    steps:
+      - uses: actions/download-artifact@v2
+  
+      - run: |
+          ls
+          false
+          
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add -u
+          git commit -m generated
+          git push
+          
 
