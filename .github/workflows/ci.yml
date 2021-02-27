@@ -35,7 +35,7 @@ jobs:
           
       - run: |
           cd lib
-          clang -fno-stack-protector -O3 -msse3 -c -o utile.o -D_WIN32 -DNDEBUG -DMINIZ_NO_ZLIB_APIS -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES *.c 
+          clang -fno-stack-protector -O3 -msse3 -DNDEBUG -DMINIZ_NO_ZLIB_APIS -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -c *.c 
           ls
           
       - uses: dlang-community/setup-dlang@v1
