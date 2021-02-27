@@ -28,6 +28,7 @@
 #include <errno.h>
 
 #ifdef _WIN32
+#include <io.h>
 #include <windows.h>
 #else
 #include <unistd.h>
@@ -157,7 +158,7 @@ int cc_fprintf(cc_color_t color, FILE* stream, const char* format, ...) {
 
     va_start(ap, format);
 
-    if (!isatty(fileno(stream)) || (stream != stdout && stream != stderr)) {
+    if (!_isatty(_fileno(stream)) || (stream != stdout && stream != stderr)) {
         result = Write(stream, format, ap);
         goto finish;
     }
