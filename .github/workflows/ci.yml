@@ -24,17 +24,21 @@ jobs:
     
     strategy:
       matrix:
-        arch: [32,64]
+        arch: [x86,x64]
 
     steps:
       - uses: actions/checkout@v2
+      
       - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: {{ matrix.arch }}
+          
       - uses: dlang-community/setup-dlang@v1
         with:
           compiler: ldc-latest
           
       - run: |
           cd lib
-          clang-cl -m{{ matrix.arch }} /GS- /O2 -msse3 -c -o utile.o -DNDEBUG -D_CRT_SECURE_NO_WARNINGS -DMINIZ_NO_ZLIB_APIS -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES *.c 
+          clang-cl /GS- /O2 -msse3 -c -o utile.o -DNDEBUG -D_CRT_SECURE_NO_WARNINGS -DMINIZ_NO_ZLIB_APIS -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES *.c 
           ls
 
