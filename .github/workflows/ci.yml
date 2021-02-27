@@ -38,7 +38,7 @@ jobs:
           NAME=../bin/libutile.a
           rm $NAME
           ar rcs $NAME *.o
-          git add $NAME
+          git add -u
           git status
           ls -l $NAME
           
