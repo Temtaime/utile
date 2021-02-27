@@ -31,5 +31,5 @@ jobs:
 
       - name: Run a multi-line script
         run: |
-          ldc --help
+          ldc2 --help
 
