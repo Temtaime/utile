@@ -21,6 +21,10 @@ jobs:
           
   build-win:
     runs-on: windows-latest
+    
+    strategy:
+      matrix:
+        arch: [32,64]
 
     steps:
       - uses: actions/checkout@v2
@@ -31,6 +35,6 @@ jobs:
           
       - run: |
           cd lib
-          clang -c -DMINIZ_NO_ZLIB_APIS -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES *.c
+          clang-cl -m{{ matrix.arch }} /GS- /O2 -msse3 -c -o utile.o -DNDEBUG -D_CRT_SECURE_NO_WARNINGS -DMINIZ_NO_ZLIB_APIS -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES *.c 
           ls
 
