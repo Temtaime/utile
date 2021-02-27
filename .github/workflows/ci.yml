@@ -35,6 +35,7 @@ jobs:
       - if: matrix.os == 'ubuntu-20.04'
         working-directory: lib
         run: |
+          mkdir ../bin
           ar rcs ../bin/libutile.a *.o
           git add ../bin/libutile.a
           git commit -m "generated"
