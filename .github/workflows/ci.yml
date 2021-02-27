@@ -37,7 +37,7 @@ jobs:
       - if: matrix.os == 'windows-latest'
         working-directory: lib
         run: |
-          lib /OUT:../bin/utile_${{ matrix.arch }}.lib *.o
+          lib /OUT:utile_${{ matrix.arch }}.lib *.o
           
       - uses: actions/upload-artifact@v2
         with:
@@ -64,11 +64,11 @@ jobs:
           ls -l
           ls -l artifact
           false
+          mv artifact/* bin
           
           git config user.name github-actions
           git config user.email github-actions@github.com
-          git add -u
-          git commit -m generated
-          git push
+          git add bin
+          git diff --exit-code && git commit -m generated && git push || echo libs are up to date
           
 
