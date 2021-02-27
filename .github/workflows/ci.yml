@@ -34,12 +34,10 @@ jobs:
         run: |
           ar rcs libutile.a *.o
           
-      - if: matrix.os == 'windows-latest2'
+      - if: matrix.os == 'windows-latest'
         working-directory: lib
         run: |
-          $name = "../bin/utile_${{ matrix.arch }}.lib"
-          lib /OUT:$name *.o
-          git add $name
+          lib /OUT:../bin/utile_${{ matrix.arch }}.lib *.o
           
       - uses: actions/upload-artifact@v2
         with:
