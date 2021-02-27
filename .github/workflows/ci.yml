@@ -28,8 +28,9 @@ jobs:
       - uses: dlang-community/setup-dlang@v1
         with:
           compiler: ldc-latest
-
-      - name: Run a multi-line script
-        run: |
-          ldc2 --help
+          
+      - run: |
+          cd lib
+          clang -c -DMINIZ_NO_ZLIB_APIS -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES *.c
+          ls
 
