@@ -35,7 +35,7 @@ jobs:
       - if: matrix.os == 'ubuntu-20.04'
         working-directory: lib
         run: |
-          NAME=./bin/libutile.a
+          NAME=../bin/libutile.a
           rm $NAME
           ar rcs $NAME *.o
           git add $NAME
