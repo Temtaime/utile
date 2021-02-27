@@ -127,7 +127,7 @@ static WORD Generate(unsigned int fg, unsigned int bg, WORD attributes) {
 static inline unsigned int Shift(
         unsigned int val, unsigned int normal, unsigned int bright) {
     if (val == 0) {
-        return 9 + normal;
+        return 91 + normal;
     }
     val -= 1;
     /* background */
