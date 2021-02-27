@@ -31,7 +31,7 @@ jobs:
       
       - uses: ilammy/msvc-dev-cmd@v1
         with:
-          arch: {{ matrix.arch }}
+          arch: ${{ matrix.arch }}
           
       - uses: dlang-community/setup-dlang@v1
         with:
