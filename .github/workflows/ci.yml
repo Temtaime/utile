@@ -24,7 +24,7 @@ jobs:
     
     strategy:
       matrix:
-        arch: [x86,x64]
+        arch: [ x86, x64 ]
 
     steps:
       - uses: actions/checkout@v2
@@ -35,7 +35,7 @@ jobs:
           
       - run: |
           cd lib
-          clang-cl /GS- /O2 -msse3 -c -o utile.o -D_WIN32 -DNDEBUG -DMINIZ_NO_ZLIB_APIS -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES *.c 
+          clang-cl /MT /GS- /O2 -msse3 -c -o utile.o -D_WIN32 -DNDEBUG -DMINIZ_NO_ZLIB_APIS -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES *.c 
           ls
           
       - uses: dlang-community/setup-dlang@v1
