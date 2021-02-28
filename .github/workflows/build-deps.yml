@@ -1,0 +1,90 @@
+name: Build deps
+
+on:
+  workflow_dispatch:
+
+env:
+  BUILD_CMD: -fno-stack-protector -O3 -msse3 -DNDEBUG -DMINIZ_NO_ZLIB_APIS -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES *.c
+
+jobs:  
+  fetch:
+    runs-on: ubuntu-20.04
+    
+    steps:
+      - run: |
+          wget https://www.sqlite.org/src/tarball/sqlite.tar.gz?r=release -O- | tar x
+          ls
+          false
+        
+  build-windows:
+    needs: fetch
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        arch: [ x86, x64 ]
+        
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.arch }}
+          
+      - working-directory: lib
+        run: |
+          clang -Brepro -fuse-ld=llvm-lib -o utile_${{ matrix.arch }}.lib ${{ env.BUILD_CMD }}
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path:
+            lib/*.lib
+          
+      - uses: dlang-community/setup-dlang@v1
+        with:
+          compiler: ldc-latest
+
+      - run: |
+          pwd
+          ls
+          
+  build-linux:
+    needs: fetch
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - working-directory: lib
+        run: |
+          clang -c ${{ env.BUILD_CMD }}
+          ar rcs libutile.a *.o
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: 
+            lib/*.a
+          
+      - uses: dlang-community/setup-dlang@v1
+        with:
+          compiler: ldc-latest
+
+      - run: |
+          pwd
+          ls
+
+  commit:
+    runs-on: ubuntu-20.04
+    needs: [ build-linux, build-windows ]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
+  
+      - run: |
+          mv artifact/* bin
+
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add bin
+          git commit -m generated 
+          git push
+ 
+ 
