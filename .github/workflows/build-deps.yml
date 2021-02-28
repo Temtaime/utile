@@ -11,8 +11,13 @@ jobs:
     runs-on: ubuntu-20.04
     
     steps:
+      - uses: actions/checkout@v2
+      
       - run: |
           wget -qO- https://www.sqlite.org/src/zip/sqlite.zip?r=release | jar x
+          cd sqlite
+          ./configure
+          make sqlite3.c
           ls
           false
         
