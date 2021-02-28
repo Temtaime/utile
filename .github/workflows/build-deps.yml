@@ -31,9 +31,11 @@ jobs:
           ref: ${{ steps.miniz.outputs.release }}
           path: miniz
           
-      - run: |
-         mv miniz/miniz.c lib
-         mv miniz/miniz.h lib
+      - working-directory: miniz
+        run: |
+         ./amalgamate.sh
+         mv amalgation/miniz.c ../lib
+         mv amalgation/miniz.h ../lib
           
       - run: |
          git config user.name github-actions
