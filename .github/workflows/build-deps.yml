@@ -12,7 +12,7 @@ jobs:
     
     steps:
       - run: |
-          wget https://www.sqlite.org/src/tarball/sqlite.tar.gz?r=release -O- | tar x
+          wget -qO- https://www.sqlite.org/src/zip/sqlite.zip?r=release | jar x
           ls
           false
         
