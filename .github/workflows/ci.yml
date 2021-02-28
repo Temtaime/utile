@@ -19,7 +19,7 @@ jobs:
 
       - working-directory: lib
         run: |
-          clang -ast-dump=json
+          clang -ast-dump=json miniz.h
           false
 
   build:
