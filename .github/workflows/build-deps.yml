@@ -16,7 +16,7 @@ jobs:
       - run: |
           wget -qO- https://www.sqlite.org/src/zip/sqlite.zip?r=release | jar x
           cd sqlite
-          ./configure
+          sh configure
           make sqlite3.c
           ls
           false
