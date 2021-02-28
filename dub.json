@@ -7,5 +7,5 @@
 
 	"libs-windows-x86": [ "$PACKAGE_DIR/bin/utile_x86" ],
 	"libs-windows-x86_64": [ "$PACKAGE_DIR/bin/utile_x64" ],
-	"dflags-linux": [ "$PACKAGE_DIR/bin/libutile.a" ]
+	"libs-linux": [ "$PACKAGE_DIR/bin/libutile.a" ]
 }
