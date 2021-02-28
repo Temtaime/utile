@@ -1,0 +1,11 @@
+﻿{
+	"name": "utile",
+	"license": "MIT",
+
+	"authors": [ "Temtaime" ],
+	"description": "Useful things for D",
+
+	"libs-windows-x86": [ "$PACKAGE_DIR/bin/utile_x86" ],
+	"libs-windows-x86_64": [ "$PACKAGE_DIR/bin/utile_x64" ],
+	"dflags-linux": [ "$PACKAGE_DIR/bin/libutile.a" ]
+}

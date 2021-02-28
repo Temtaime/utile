@@ -29,5 +29,4 @@ jobs:
           compiler: ldc-latest
 
       - run: |
-          ls
-          ldc2 --help
+          dub test -b unittest --verbose
