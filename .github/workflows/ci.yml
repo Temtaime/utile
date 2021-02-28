@@ -8,7 +8,21 @@ on:
   workflow_dispatch:
 
 jobs:
+  test:
+  runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x86
+
+      - working-directory: lib
+        run: |
+          clang -ast-dump=json
+          false
+
   build:
+    needs: test
     strategy:
       fail-fast: false
       matrix:
@@ -30,4 +44,4 @@ jobs:
           compiler: ldc-latest
 
       - run: |
-          dub test -b unittest --verbose
+          dub test -b unittest
