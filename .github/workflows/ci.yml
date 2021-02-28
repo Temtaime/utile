@@ -7,7 +7,7 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
-jobs:  
+jobs:
   build:
     strategy:
       matrix:
@@ -16,14 +16,14 @@ jobs:
         exclude:
           - arch: x86
             os: ubuntu-20.04
-        
+
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
       - uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: ${{ matrix.arch }}
-          
+
       - uses: dlang-community/setup-dlang@v1
         with:
           compiler: ldc-latest
@@ -31,6 +31,3 @@ jobs:
       - run: |
           ls
           ldc2 --help
-          
-
-

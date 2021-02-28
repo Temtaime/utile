@@ -6,37 +6,37 @@ on:
 env:
   BUILD_CMD: -fno-stack-protector -O3 -msse3 -DNDEBUG -DMINIZ_NO_ZLIB_APIS -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES *.c
 
-jobs:  
+jobs:
   fetch:
     runs-on: ubuntu-20.04
-    
+
     steps:
       - uses: actions/checkout@v2
-      
+
       - run: |
           wget -qO- https://www.sqlite.org/src/zip/sqlite.zip?r=release | jar x
           cd sqlite
           sh configure
           make sqlite3.c
           mv sqlite3.c ../lib
-      
+
       - id: miniz
         uses: pozetroninc/github-action-get-latest-release@master
         with:
           repository: richgel999/miniz
-          
+
       - uses: actions/checkout@v2
         with:
           repository: richgel999/miniz
           ref: ${{ steps.miniz.outputs.release }}
           path: miniz
-          
+
       - working-directory: miniz
         run: |
          ./amalgamate.sh
          mv amalgamation/miniz.c ../lib
          mv amalgamation/miniz.h ../lib
-          
+
       - run: |
          git config user.name github-actions
          git config user.email github-actions@github.com
@@ -44,14 +44,14 @@ jobs:
          git add -u
          git commit -m updated
          git push
-        
+
   build-windows:
     needs: fetch
     runs-on: windows-latest
     strategy:
       matrix:
         arch: [ x86, x64 ]
-        
+
     steps:
       - uses: actions/checkout@v2
         with:
@@ -59,7 +59,7 @@ jobs:
       - uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: ${{ matrix.arch }}
-          
+
       - working-directory: lib
         run: |
           clang -fuse-ld=llvm-lib -o utile_${{ matrix.arch }}.lib ${{ env.BUILD_CMD }}
@@ -85,9 +85,9 @@ jobs:
 
       - uses: actions/upload-artifact@v2
         with:
-          path: 
+          path:
             lib/*.a
-          
+
   commit:
     runs-on: ubuntu-20.04
     needs: [ build-linux, build-windows ]
@@ -95,16 +95,14 @@ jobs:
       - uses: actions/checkout@v2
         with:
           ref: main
-          
+
       - uses: actions/download-artifact@v2
-  
+
       - run: |
           mv artifact/* bin
 
           git config user.name github-actions
           git config user.email github-actions@github.com
           git add -u
-          git commit -m generated 
+          git commit -m generated
           git push
- 
- 
