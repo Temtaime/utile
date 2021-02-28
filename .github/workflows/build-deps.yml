@@ -39,6 +39,7 @@ jobs:
          git config user.name github-actions
          git config user.email github-actions@github.com
          git add -u
+         git diff --exit-code || exit 0
          git commit -m updated
          git push
         
@@ -51,13 +52,15 @@ jobs:
         
     steps:
       - uses: actions/checkout@v2
+        with:
+          ref: main
       - uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: ${{ matrix.arch }}
           
       - working-directory: lib
         run: |
-          clang -Brepro -fuse-ld=llvm-lib -o utile_${{ matrix.arch }}.lib ${{ env.BUILD_CMD }}
+          clang -fuse-ld=llvm-lib -o utile_${{ matrix.arch }}.lib ${{ env.BUILD_CMD }}
 
       - uses: actions/upload-artifact@v2
         with:
@@ -78,6 +81,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+        with:
+          ref: main
 
       - working-directory: lib
         run: |
@@ -102,6 +107,9 @@ jobs:
     needs: [ build-linux, build-windows ]
     steps:
       - uses: actions/checkout@v2
+        with:
+          ref: main
+          
       - uses: actions/download-artifact@v2
   
       - run: |
@@ -109,7 +117,7 @@ jobs:
 
           git config user.name github-actions
           git config user.email github-actions@github.com
-          git add bin
+          git add -u
           git commit -m generated 
           git push
  
