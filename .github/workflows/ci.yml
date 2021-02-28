@@ -10,16 +10,17 @@ on:
 jobs:
   test:
   runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x86
 
-      - working-directory: lib
-        run: |
-          clang -ast-dump=json
-          false
+  steps:
+    - uses: actions/checkout@v2
+    - uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x86
+
+    - working-directory: lib
+      run: |
+        clang -ast-dump=json
+        false
 
   build:
     needs: test
