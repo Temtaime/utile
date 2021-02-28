@@ -32,8 +32,8 @@ jobs:
           path: miniz
           
       - run: |
-         mv miniz\miniz.c lib
-         mv miniz\miniz.h lib
+         mv miniz/miniz.c lib
+         mv miniz/miniz.h lib
           
       - run: |
          git config user.name github-actions
