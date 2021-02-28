@@ -10,6 +10,7 @@ on:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         arch: [ x86, x64 ]
         os: [ ubuntu-20.04, windows-latest ]
