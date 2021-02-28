@@ -18,8 +18,29 @@ jobs:
           cd sqlite
           sh configure
           make sqlite3.c
-          ls
-          false
+          mv sqlite3.c ../lib
+      
+      - id: miniz
+        uses: pozetroninc/github-action-get-latest-release@master
+        with:
+          repository: richgel999/miniz
+          
+      - uses: actions/checkout@v2
+        with:
+          repository: richgel999/miniz
+          ref: ${{ steps.miniz.outputs.release }}
+          path: miniz
+          
+      - run: |
+         mv miniz\miniz.c lib
+         mv miniz\miniz.h lib
+          
+      - run: |
+         git config user.name github-actions
+         git config user.email github-actions@github.com
+         git add -u
+         git commit -m updated
+         git push
         
   build-windows:
     needs: fetch
