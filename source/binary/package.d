@@ -1,7 +1,5 @@
 module utile.binary;
-
-import std.conv, std.range, std.traits, std.typecons, std.algorithm,
-	std.typetuple, utile.misc, utile.except, utile.binary.helpers;
+import std, std.typetuple, utile.misc, utile.except, utile.binary.helpers;
 
 public import utile.binary.funcs, utile.binary.readers;
 
@@ -83,13 +81,9 @@ private:
 					size_t cnt = StructExecuter!(attrs[idx + 1])(data, st, parent, reader);
 
 					static if (isWrite)
-					{
 						reader.wskip(cnt) || mixin(errorWSkip);
-					}
 					else
-					{
 						reader.rskip(cnt) || mixin(errorRSkip);
-					}
 				}
 			}
 
@@ -107,9 +101,7 @@ private:
 							enum def = staticIndexOf!(`default`, attrs);
 
 							static if (def >= 0)
-							{
 								*p = StructExecuter!(attrs[def + 1])(data, st, parent, reader);
-							}
 						}
 
 						continue;
@@ -125,21 +117,15 @@ private:
 					auto varPtr = &tmp;
 				}
 				else
-				{
 					alias varPtr = p;
-				}
 			}
 
 			static if (isDataSimple!R)
 			{
 				static if (isWrite)
-				{
 					reader.write(toByte(*p)) || mixin(errorWrite);
-				}
 				else
-				{
 					reader.read(toByte(*varPtr)) || mixin(errorRead);
-				}
 			}
 			else static if (isAssociativeArray!R)
 			{
@@ -158,16 +144,12 @@ private:
 				auto arr = &aa.tupleof[0];
 
 				static if (isWrite)
-				{
 					*arr = p.byKeyValue.map!(a => Pair(a.key, a.value)).array;
-				}
 
 				process!isWrite(aa, st, data);
 
 				static if (!isWrite)
-				{
 					*p = map!(a => tuple(a.tupleof))(*arr).assocArray;
-				}
 			}
 			else static if (isArray!R)
 			{
@@ -183,9 +165,7 @@ private:
 					uint elemsCnt = StructExecuter!(attrs[lenIdx + 1])(data, st, parent, reader);
 
 					static if (isWrite)
-					{
 						assert(p.length == elemsCnt);
-					}
 
 					enum isRest = false;
 				}
@@ -212,16 +192,12 @@ private:
 							reader.write(elemsCnt.toByte) || mixin(errorWrite);
 						}
 						else
-						{
 							reader.read(elemsCnt.toByte) || mixin(errorRead);
-						}
 
 						enum isRest = false;
 					}
 					else
-					{
 						enum isRest = staticIndexOf!(`rest`, attrs) >= 0;
-					}
 				}
 
 				enum isStr = is(R : string);
@@ -229,14 +205,10 @@ private:
 				enum isDyn = isDynamicArray!R;
 
 				static if (isDyn)
-				{
 					static assert(isStr || isLen || isRest, `length of ` ~ Elem ~ ` is unknown`);
-				}
 				else
-				{
 					static assert(!(isLen || isRest), `static array ` ~ Elem
 							~ ` can't have a length`);
-				}
 
 				static if (isElemSimple)
 				{
@@ -245,16 +217,12 @@ private:
 						reader.write(toByte(*p)) || mixin(errorWrite);
 
 						static if (isStr && !isLen)
-						{
 							reader.wskip(1) || mixin(errorWSkip);
-						}
 					}
 					else
 					{
 						static if (isStr && !isLen)
-						{
 							reader.readstr(*varPtr) || mixin(errorRead);
-						}
 						else
 						{
 							ubyte[] arr;
@@ -286,9 +254,7 @@ private:
 					static if (isWrite)
 					{
 						foreach (ref v; *p)
-						{
 							process!isWrite(v, st, data);
-						}
 					}
 					else
 					{
@@ -312,9 +278,7 @@ private:
 							}
 
 							foreach (ref v; *varPtr)
-							{
 								process!isWrite(v, st, data);
-							}
 						}
 					}
 
@@ -350,14 +314,11 @@ private:
 				enum idx = staticIndexOf!(`validif`, attrs);
 
 				static if (idx >= 0)
-				{
 					StructExecuter!(attrs[idx + 1])(data, st, parent, reader) || mixin(errorValid);
-				}
 			}
 		}
 	}
 
 	uint _l;
-
 	string _f, _info;
 }

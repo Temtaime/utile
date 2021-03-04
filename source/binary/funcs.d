@@ -1,5 +1,4 @@
 module utile.binary.funcs;
-
 import std.mmfile, utile.except, utile.binary;
 
 // ----------------------------------------- READ FUNCTIONS -----------------------------------------
@@ -35,13 +34,13 @@ const(void)[] binaryWrite(T)(auto ref in T data, string f = __FILE__, uint l = _
 	return BinaryReader!AppendWriter().write(data, f, l).reader.data;
 }
 
-void binaryWrite(T)(void[] buf, auto ref in T data, bool canRest = false,
+void binaryWrite(T)(void[] buf, auto ref in T data, bool allowRest = false,
 		string f = __FILE__, uint l = __LINE__)
 {
 	auto r = buf.BinaryReader!MemoryReader;
 	r.write(data, f, l);
 
-	!r.reader.length || canRest
+	!r.reader.length || allowRest
 		|| throwError!`not all the buffer was used, %u bytes rest`(f, l, r.reader.length);
 }
 

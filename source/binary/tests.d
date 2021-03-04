@@ -1,6 +1,5 @@
 module utile.binary.tests;
-
-import std.meta, std.file, utile.misc, utile.binary, utile.binary.helpers;
+import std, utile.misc, utile.binary, utile.binary.helpers;
 
 unittest
 {
@@ -89,7 +88,7 @@ unittest
 
 	static assert(fieldsToProcess!Test == [`y`, `u`, `s`, `c`, `d`, `e`, `r`]);
 
-	ubyte[] data = [
+	const(ubyte)[] data = [
 		12, 0, 0, 0, // y
 		11, 0, 0, 0, 0, 0, 0, 0, // a
 		4, 0, 0, 0, // S.k

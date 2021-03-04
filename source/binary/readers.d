@@ -1,5 +1,4 @@
 module utile.binary.readers;
-
 import utile.misc;
 
 struct MemoryReader
@@ -13,9 +12,7 @@ struct MemoryReader
 	bool read(ubyte[] v)
 	{
 		if (length < v.length)
-		{
 			return false;
-		}
 
 		v[] = _p[0 .. v.length];
 		_p += v.length;
@@ -26,9 +23,7 @@ struct MemoryReader
 	bool read(ref ubyte[] v, uint len)
 	{
 		if (length < len)
-		{
 			return false;
-		}
 
 		v = _p[0 .. len].dup;
 		_p += len;
@@ -45,23 +40,21 @@ struct MemoryReader
 		{
 		}
 
-		if (!r)
+		if (r)
 		{
-			return false;
+			v = cast(string)_p[0 .. t - _p].idup;
+			_p = t + 1;
+
+			return true;
 		}
 
-		v = cast(string)_p[0 .. t - _p].idup;
-		_p = t + 1;
-
-		return true;
+		return false;
 	}
 
 	bool write(in ubyte[] v)
 	{
 		if (length < v.length)
-		{
 			return false;
-		}
 
 		_p[0 .. v.length] = v;
 		_p += v.length;
@@ -72,9 +65,7 @@ struct MemoryReader
 	bool rskip(size_t cnt)
 	{
 		if (length < cnt)
-		{
 			return false;
-		}
 
 		_p += cnt;
 		return true;
@@ -83,9 +74,7 @@ struct MemoryReader
 	bool wskip(size_t cnt)
 	{
 		if (length < cnt)
-		{
 			return false;
-		}
 
 		_p += cnt;
 		return true;

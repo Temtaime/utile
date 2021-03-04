@@ -24,6 +24,10 @@ auto checkAttrs(string[] arr...)
 	return null;
 }
 
+struct ArrayLenType(T) if (isUnsigned!T)
+{
+}
+
 template isDataSimple(T)
 {
 	static if (isBasicType!T)
