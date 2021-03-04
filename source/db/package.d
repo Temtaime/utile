@@ -1,52 +1,21 @@
 module utile.db;
-import std.typecons, utile.except;
+import std, utile.except;
 
 public import utile.db.mysql, utile.db.sqlite;
 
-template query(T...)
-{
-	auto query(R, A...)(R db, string sql, A args) if (is(R == SQLite) || is(R == MySQL))
-	{
-		auto stmt = db.prepare(sql);
-		db.bind(stmt, args);
-
-		static if (T.length)
-			return db.process!T(stmt);
-		else
-		{
-			db.process(stmt);
-			return tuple!(`affected`, `lastId`)(db.affected(stmt), db.lastId(stmt));
-		}
-	}
-}
-
-template queryOne(T...)
-{
-	auto queryOne(R, A...)(R db, string sql, A args)
-			if (is(R == SQLite) || is(R == MySQL))
-	{
-		auto res = db.query!T(sql, args);
-		res.empty && throwError(`query returned no rows`);
-
-		auto e = res.front;
-
-		res.popFront;
-		res.empty || throwError(`query returned multiple rows`);
-
-		return e;
-	}
-}
-
-/*
 unittest
 {
 	{
 		scope db = new SQLite(`:memory:`);
 
-		auto res = db.query!(uint, string)(`select ?, ?;`, 123, `hello`);
+		auto res = db.query!(uint, string)(`select ?, ?;`, 123, `hello`).array;
 		auto res2 = db.queryOne!uint(`select ?;`, 123);
+
+		assert(res.equal(tuple(123, `hello`).only));
+		assert(res2 == 123);
 	}
 
+	version (Utile_Mysql)
 	{
 		MySQL db;
 
@@ -54,4 +23,41 @@ unittest
 		auto res2 = db.queryOne!uint(`select ?;`, 123);
 	}
 }
-*/
+
+package:
+
+mixin template DbBase()
+{
+	template query(T...)
+	{
+		auto query(A...)(string sql, A args)
+		{
+			auto stmt = prepare(sql);
+			bind(stmt, args);
+
+			static if (T.length)
+				return process!T(stmt);
+			else
+			{
+				process(stmt);
+				return tuple!(`affected`, `lastId`)(affected(stmt), lastId(stmt));
+			}
+		}
+	}
+
+	template queryOne(T...)
+	{
+		auto queryOne(A...)(string sql, A args)
+		{
+			auto res = query!T(sql, args);
+			res.empty && throwError(`query returned no rows`);
+
+			auto e = res.front;
+
+			res.popFront;
+			res.empty || throwError(`query returned multiple rows`);
+
+			return e;
+		}
+	}
+}

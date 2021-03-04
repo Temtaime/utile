@@ -1,7 +1,6 @@
 module utile.db.sqlite;
-
 import std.conv, std.meta, std.array, std.string, std.traits, std.typecons,
-	std.exception, std.algorithm, etc.c.sqlite3, utile.except;
+	std.exception, std.algorithm, etc.c.sqlite3, utile.db, utile.except;
 
 final class SQLite
 {
@@ -30,7 +29,8 @@ final class SQLite
 		rc == SQLITE_DONE || throwError!`error backuping db: %s`(rc);
 	}
 
-package:
+	mixin DbBase;
+private:
 	void process(sqlite3_stmt* stmt)
 	{
 		execute(stmt);

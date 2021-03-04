@@ -1,8 +1,10 @@
 module utile.db.mysql;
 import std.conv, std.meta, std.array, std.string, std.traits, std.typecons,
-	std.exception, std.algorithm, utile.except, utile.db.mysql.binding;
+	std.exception, std.algorithm, utile.except, utile.db, utile.db.mysql.binding;
 
-version (linux)  : final class MySQL
+version (Utile_Mysql):
+
+final class MySQL
 {
 	this(string host, string user, string pass, string db, uint port = 3306)
 	{
@@ -23,8 +25,8 @@ version (linux)  : final class MySQL
 		mysql_close(_db);
 	}
 
-package(utile.db):
-
+	mixin DbBase;
+private:
 	void process(MYSQL_STMT* stmt)
 	{
 		mysql_stmt_reset(stmt);
@@ -179,7 +181,6 @@ package(utile.db):
 		return mysql_stmt_affected_rows(stmt);
 	}
 
-private:
 	auto makeBind(T)(T* v, c_ulong* len = null)
 	{
 		MYSQL_BIND b;
