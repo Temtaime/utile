@@ -87,7 +87,7 @@ struct MemoryStream
 
 	const length()
 	{
-		return cast(size_t)(_end - _p);
+		return _end - _p;
 	}
 
 private:
@@ -115,4 +115,27 @@ struct AppendStream
 
 private:
 	mixin publicProperty!(ubyte[], `data`);
+}
+
+struct LengthCalcStream
+{
+	bool write(in ubyte[] v)
+	{
+		_written += v.length;
+		return true;
+	}
+
+	bool wskip(size_t cnt)
+	{
+		_written += cnt;
+		return true;
+	}
+
+	const length()
+	{
+		return 0;
+	}
+
+private:
+	mixin publicProperty!(size_t, `written`);
 }

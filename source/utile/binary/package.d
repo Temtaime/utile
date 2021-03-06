@@ -1,7 +1,27 @@
 module utile.binary;
 import std, std.typetuple, utile.misc, utile.except, utile.binary.helpers;
 
-public import utile.binary.attrs, utile.binary.funcs, utile.binary.streams;
+public import utile.binary.attrs, utile.binary.streams;
+
+size_t writeLength(T)(ref in T value, string file = __FILE__, uint line = __LINE__)
+{
+	return Serializer!LengthCalcStream().write(value, true, file, line).stream.written;
+}
+
+void serializeFile(T)(string name, ref in T value, string file = __FILE__, uint line = __LINE__)
+{
+	scope mm = new MmFile(name, MmFile.Mode.readWriteNew, writeLength(value, file, line), null);
+
+	mm[].Serializer!MemoryStream.write(value, true, file, line);
+}
+
+T deserializeFile(T)(string name, string file = __FILE__, uint line = __LINE__)
+{
+	scope mm = new MmFile(name);
+
+	return mm[].Serializer!MemoryStream
+		.read!T(true, file, line);
+}
 
 struct Serializer(Stream)
 {
@@ -13,22 +33,22 @@ struct Serializer(Stream)
 	T read(T)(bool ensureFullyParsed = true, string file = __FILE__, uint line = __LINE__)
 			if (is(T == struct))
 	{
-		T res;
+		T value;
 
-		auto s = SerializerImpl!(Stream, T)(&res, &stream, line, file);
-		s.process!false(res, res);
+		auto s = SerializerImpl!(Stream, T)(&value, &stream, line, file);
+		s.process!false(value, value);
 
 		if (ensureFullyParsed)
 			stream.length && throwError!`%u bytes were not parsed`(file, line, stream.length);
 
-		return res;
+		return value;
 	}
 
-	ref write(T)(auto ref in T t, bool ensureNoSpaceLeft = true,
+	ref write(T)(auto ref in T value, bool ensureNoSpaceLeft = true,
 			string file = __FILE__, uint line = __LINE__) if (is(T == struct))
 	{
-		auto s = SerializerImpl!(Stream, const(T))(&t, &stream, line, file);
-		s.process!true(t, t);
+		auto s = SerializerImpl!(Stream, const(T))(&value, &stream, line, file);
+		s.process!true(value, value);
 
 		if (ensureNoSpaceLeft)
 			stream.length && throwError!`%u bytes were not occupied`(file, line, stream.length);
@@ -101,7 +121,7 @@ private:
 		}
 	}
 
-	void doProcess(bool Writing, T, P)(ref T data, ref P parent)
+	pragma(inline, true) void doProcess(bool Writing, T, P)(ref T data, ref P parent)
 	{
 		_depth++;
 		scope (success)
@@ -283,9 +303,7 @@ private:
 							ubyte[] arr;
 
 							static if (isRest)
-							{
 								stream.read(arr, stream.length & ~(E.sizeof - 1)) || errorRead;
-							}
 							else
 								stream.read(arr, elemsCnt * E.sizeof) || errorRead;
 

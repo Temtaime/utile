@@ -118,4 +118,12 @@ unittest
 	assert(written == data);
 	assert(data.Serializer!MemoryStream
 			.read!Test == t);
+
+	enum File = `__tmp`;
+	serializeFile(File, t);
+
+	scope (exit)
+		std.file.remove(File);
+
+	assert(deserializeFile!Test(File) == t);
 }
