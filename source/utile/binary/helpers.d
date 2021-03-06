@@ -1,32 +1,5 @@
 module utile.binary.helpers;
-
-import std.meta, std.array, std.range, std.traits;
-
-auto checkAttrs(string[] arr...)
-{
-	while (arr.length)
-	{
-		switch (arr.front)
-		{
-		case `default`, `skip`, `length`, `ignoreif`, `validif`:
-			arr.popFront;
-			goto case;
-
-		case `rest`, `ubyte`, `ushort`, `uint`:
-			arr.popFront;
-			break;
-
-		default:
-			return arr.front;
-		}
-	}
-
-	return null;
-}
-
-struct ArrayLenType(T) if (isUnsigned!T)
-{
-}
+import std.meta, std.traits, std.array, std.range, std.traits, utile.binary.attrs;
 
 template isDataSimple(T)
 {
@@ -41,14 +14,6 @@ template isDataSimple(T)
 	else
 	{
 		enum isDataSimple = false;
-	}
-}
-
-auto StructExecuter(alias _expr, D, S, P, R)(ref D CUR, ref S STRUCT, ref P PARENT, ref R READER)
-{
-	with (CUR)
-	{
-		return mixin(_expr);
 	}
 }
 
@@ -74,11 +39,11 @@ auto StructExecuter(alias _expr, D, S, P, R)(ref D CUR, ref S STRUCT, ref P PARE
 		{
 			alias E = Alias!(__traits(getMember, T, name));
 
-			static if (!(is(FunctionTypeOf!E == function) || hasUDA!(E, `ignore`)))
+			static if (!(is(FunctionTypeOf!E == function) || hasUDA!(E, Ignored)))
 			{
 				static if (is(typeof(E.offsetof)) && isAssignable!(typeof(E)))
 				{
-					uint x = E.offsetof, s = E.sizeof;
+					const x = E.offsetof, s = E.sizeof;
 
 					if (k != x)
 					{

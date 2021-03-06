@@ -82,11 +82,18 @@ unittest
 		static immutable char[4] c = `ABCD`;
 		string d = `abc`;
 
-		@(`uint`) int[] e = [1, 2, 3];
-		@(`length`, `3`) int[] r = [4, 5, 6];
+		@(ArrayLength!uint) int[] e = [1, 2, 3];
+		@(ArrayLength!(a => a.that.e.length)) int[] r = [4, 5, 6];
+
+		@Ignored int kk;
+		@(IgnoreIf!(a => a.that.r.length == 3)) int rt;
+
+		@(ToTheEnd, Skip!(a => a.that.rt)) byte[] q = [1, 2, 3, 4];
 	}
 
-	static assert(fieldsToProcess!Test == [`y`, `u`, `s`, `c`, `d`, `e`, `r`]);
+	static assert(fieldsToProcess!Test == [
+			`y`, `u`, `s`, `c`, `d`, `e`, `r`, `rt`, `q`
+			]);
 
 	const(ubyte)[] data = [
 		12, 0, 0, 0, // y
@@ -100,20 +107,22 @@ unittest
 		3, 0, 0, 0, // e[3]
 		4, 0, 0, 0, // r[0], length is set by the user
 		5, 0, 0, 0, // r[1]
-		6, 0, 0,
-		0 // r[2]
+		6, 0, 0, 0, // r[2]
+		1, 2, 3,
+		4 // q[4]
 	];
 
 	Test t;
 
-	assert(t.binaryWrite == data);
-	assert(data.binaryRead!Test == t);
+	assert(BinarySerializer!AppendStream().write(t).stream.data == data);
+	assert(data.BinarySerializer!MemoryStream
+			.read!Test == t);
 
 	auto name = `__tmp`;
-	binaryWriteFile(name, t);
+	//binaryWriteFile(name, t);
 
-	assert(read(name) == data);
-	assert(binaryReadFile!Test(name) == t);
+	//assert(read(name) == data);
+	//assert(binaryReadFile!Test(name) == t);
 
-	remove(name);
+	//remove(name);
 }

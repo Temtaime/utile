@@ -1,38 +1,48 @@
 module utile.binary;
 import std, std.typetuple, utile.misc, utile.except, utile.binary.helpers;
 
-public import utile.binary.funcs, utile.binary.readers;
+public import utile.binary.attrs, utile.binary.funcs, utile.binary.streams;
 
-struct BinaryReader(Reader)
+struct BinarySerializer(Stream)
 {
 	this(A...)(auto ref A args)
 	{
-		reader = Reader(args);
+		stream = Stream(args);
 	}
 
-	auto read(T)(string f = __FILE__, uint l = __LINE__) if (is(T == struct))
+	T read(T)(bool ensureFullyParsed = true, string file = __FILE__, uint line = __LINE__)
+			if (is(T == struct))
 	{
-		_l = l;
-		_f = f;
+		_l = line;
+		_f = file;
 		_info = T.stringof;
 
 		T t;
 		process(t, t, t);
+
+		if (ensureFullyParsed)
+			stream.length && throwError!`%u extra bytes was not parsed`(file, line, stream.length);
+
 		return t;
 	}
 
-	ref write(T)(auto ref in T t, string f = __FILE__, uint l = __LINE__)
-			if (is(T == struct))
+	ref write(T)(auto ref in T t, bool ensureNoSpaceLeft = true,
+			string file = __FILE__, uint line = __LINE__) if (is(T == struct))
 	{
-		_l = l;
-		_f = f;
+		_l = line;
+		_f = file;
 		_info = T.stringof;
 
 		process!true(t, t, t);
+
+		if (ensureNoSpaceLeft)
+			stream.length && throwError!`%u extra bytes were not occupied`(file,
+					line, stream.length);
+
 		return this;
 	}
 
-	Reader reader;
+	Stream stream;
 private:
 	debug
 	{
@@ -57,51 +67,52 @@ private:
 
 	void process(bool isWrite = false, T, S, P)(ref T data, ref S st, ref P parent)
 	{
-		foreach (name; aliasSeqOf!(fieldsToProcess!T()))
+		auto evaluateData = tuple!(`input`, `parent`, `that`, `stream`)(&st,
+				&parent, &data, &stream);
+
+		alias Fields = aliasSeqOf!(fieldsToProcess!T());
+
+		foreach (name; Fields)
 		{
 			enum Elem = T.stringof ~ `.` ~ name;
 
-			alias attrs = TypeTuple!(__traits(getAttributes, __traits(getMember, T, name)));
+			alias attrs = AliasSeq!(__traits(getAttributes, __traits(getMember, T, name)));
 
 			debug
 			{
-				enum att = checkAttrs(attrs);
-
-				static assert(!att.length, Elem ~ ` has invalid attribute ` ~ att);
+				static assert(allSatisfy!(isAttrValid, attrs), Elem ~ ` has invalid attributes`);
 			}
 
 			auto p = &__traits(getMember, data, name);
 			alias R = typeof(*p);
 
 			{
-				enum idx = staticIndexOf!(`skip`, attrs);
+				alias skip = templateParamFor!(Skip, attrs);
 
-				static if (idx >= 0)
+				static if (!is(skip == void))
 				{
-					size_t cnt = StructExecuter!(attrs[idx + 1])(data, st, parent, reader);
+					size_t cnt = skip(evaluateData);
 
 					static if (isWrite)
-						reader.wskip(cnt) || mixin(errorWSkip);
+						stream.wskip(cnt) || mixin(errorWSkip);
 					else
-						reader.rskip(cnt) || mixin(errorRSkip);
+						stream.rskip(cnt) || mixin(errorRSkip);
 				}
 			}
 
 			{
-				enum idx = staticIndexOf!(`ignoreif`, attrs);
+				alias ignore = templateParamFor!(IgnoreIf, attrs);
 
-				static if (idx >= 0)
+				static if (!is(ignore == void))
 				{
-					auto v = StructExecuter!(attrs[idx + 1])(data, st, parent, reader);
-
-					if (v)
+					if (ignore(evaluateData))
 					{
 						static if (!isWrite)
 						{
-							enum def = staticIndexOf!(`default`, attrs);
+							alias def = templateParamFor!(Default, attrs);
 
-							static if (def >= 0)
-								*p = StructExecuter!(attrs[def + 1])(data, st, parent, reader);
+							static if (!is(def == void))
+								*p = def(evaluateData);
 						}
 
 						continue;
@@ -123,9 +134,9 @@ private:
 			static if (isDataSimple!R)
 			{
 				static if (isWrite)
-					reader.write(toByte(*p)) || mixin(errorWrite);
+					stream.write(toByte(*p)) || mixin(errorWrite);
 				else
-					reader.read(toByte(*varPtr)) || mixin(errorRead);
+					stream.read(toByte(*varPtr)) || mixin(errorRead);
 			}
 			else static if (isAssociativeArray!R)
 			{
@@ -154,50 +165,49 @@ private:
 			else static if (isArray!R)
 			{
 				alias E = ElementEncodingType!R;
-
 				enum isElemSimple = isDataSimple!E;
-				enum lenIdx = staticIndexOf!(`length`, attrs);
 
 				static assert(isElemSimple || is(E == struct), `can't serialize ` ~ Elem);
 
-				static if (lenIdx >= 0)
+				alias LenAttr = templateParamFor!(ArrayLength, attrs);
+
+				static if (is(LenAttr == void))
 				{
-					uint elemsCnt = StructExecuter!(attrs[lenIdx + 1])(data, st, parent, reader);
+					enum isRest = staticIndexOf!(ToTheEnd, attrs) >= 0;
 
-					static if (isWrite)
-						assert(p.length == elemsCnt);
-
-					enum isRest = false;
+					static if (isRest)
+						static assert(name == Fields[$ - 1], Elem ~ ` is not the last field`);
 				}
 				else
 				{
-					static if (staticIndexOf!(`ubyte`, attrs) >= 0)
-						alias L = ubyte;
-					else static if (staticIndexOf!(`ushort`, attrs) >= 0)
-						alias L = ushort;
-					else static if (staticIndexOf!(`uint`, attrs) >= 0)
-						alias L = uint;
-					else static if (staticIndexOf!(`ulong`, attrs) >= 0)
-						alias L = ulong;
-
-					static if (is(L))
+					static if (isType!LenAttr)
 					{
-						L elemsCnt;
+						static assert(isUnsigned!LenAttr,
+								`length must be a function or an unsigned type for ` ~ Elem);
+
+						LenAttr elemsCnt;
 
 						static if (isWrite)
 						{
-							assert(p.length <= L.max);
+							assert(p.length <= LenAttr.max);
 
-							elemsCnt = cast(L)p.length;
-							reader.write(elemsCnt.toByte) || mixin(errorWrite);
+							elemsCnt = cast(LenAttr)p.length;
+							stream.write(elemsCnt.toByte) || mixin(errorWrite);
 						}
 						else
-							reader.read(elemsCnt.toByte) || mixin(errorRead);
+							stream.read(elemsCnt.toByte) || mixin(errorRead);
 
 						enum isRest = false;
 					}
 					else
-						enum isRest = staticIndexOf!(`rest`, attrs) >= 0;
+					{
+						uint elemsCnt = cast(uint)LenAttr(evaluateData);
+
+						static if (isWrite)
+							assert(p.length == elemsCnt);
+
+						enum isRest = false;
+					}
 				}
 
 				enum isStr = is(R : string);
@@ -207,36 +217,39 @@ private:
 				static if (isDyn)
 					static assert(isStr || isLen || isRest, `length of ` ~ Elem ~ ` is unknown`);
 				else
-					static assert(!(isLen || isRest), `static array ` ~ Elem
-							~ ` can't have a length`);
+					static assert(!(isLen || isRest),
+							`static array ` ~ Elem ~ ` can not have a length`);
 
 				static if (isElemSimple)
 				{
 					static if (isWrite)
 					{
-						reader.write(toByte(*p)) || mixin(errorWrite);
+						stream.write(toByte(*p)) || mixin(errorWrite);
 
 						static if (isStr && !isLen)
-							reader.wskip(1) || mixin(errorWSkip);
+						{
+							ubyte[1] terminator;
+							stream.write(terminator) || mixin(errorWrite);
+						}
 					}
 					else
 					{
 						static if (isStr && !isLen)
-							reader.readstr(*varPtr) || mixin(errorRead);
+							stream.readstr(*varPtr) || mixin(errorRead);
 						else
 						{
 							ubyte[] arr;
 
 							static if (isRest)
 							{
-								!(reader.length % E.sizeof) && reader.read(arr,
-										cast(uint)reader.length) || mixin(errorRead);
+								stream.read(arr, stream.length & ~(E.sizeof - 1))
+									|| mixin(errorRead);
 							}
 							else
 							{
 								mixin(checkLength);
 
-								reader.read(arr, elemsCnt * cast(uint)E.sizeof) || mixin(errorRead);
+								stream.read(arr, elemsCnt * E.sizeof) || mixin(errorRead);
 							}
 
 							*varPtr = (cast(E*)arr.ptr)[0 .. arr.length / E.sizeof];
@@ -260,7 +273,7 @@ private:
 					{
 						static if (isRest)
 						{
-							while (reader.length)
+							while (stream.length)
 							{
 								E v;
 								process!isWrite(v, st, data);
@@ -311,12 +324,29 @@ private:
 					tmp == *p || mixin(errorCheck);
 				}
 
-				enum idx = staticIndexOf!(`validif`, attrs);
+				alias validate = templateParamFor!(Validate, attrs);
 
-				static if (idx >= 0)
-					StructExecuter!(attrs[idx + 1])(data, st, parent, reader) || mixin(errorValid);
+				static if (!is(validate == void))
+					validate(evaluateData) || mixin(errorValid);
 			}
 		}
+	}
+
+	enum isAttrValid(T) = is(T : SerializerAttr);
+
+	template templateParamFor(alias C, A...)
+	{
+		static if (A.length)
+		{
+			alias T = A[0];
+
+			static if (__traits(isSame, TemplateOf!T, C))
+				alias templateParamFor = TemplateArgsOf!T[0];
+			else
+				alias templateParamFor = templateParamFor!(C, A[1 .. $]);
+		}
+		else
+			alias templateParamFor = void;
 	}
 
 	uint _l;

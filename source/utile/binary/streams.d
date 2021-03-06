@@ -1,7 +1,7 @@
-module utile.binary.readers;
+module utile.binary.streams;
 import utile.misc;
 
-struct MemoryReader
+struct MemoryStream
 {
 	this(in void[] data)
 	{
@@ -20,7 +20,7 @@ struct MemoryReader
 		return true;
 	}
 
-	bool read(ref ubyte[] v, uint len)
+	bool read(ref ubyte[] v, size_t len)
 	{
 		if (length < len)
 			return false;
@@ -94,7 +94,7 @@ private:
 	ubyte* _p, _end;
 }
 
-struct AppendWriter
+struct AppendStream
 {
 	bool write(in ubyte[] v)
 	{
@@ -110,7 +110,7 @@ struct AppendWriter
 
 	const length()
 	{
-		return _data.length;
+		return 0;
 	}
 
 private:
