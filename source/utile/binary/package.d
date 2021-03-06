@@ -23,6 +23,17 @@ T deserializeFile(T)(string name, string file = __FILE__, uint line = __LINE__)
 		.read!T(true, file, line);
 }
 
+ubyte[] serializeMem(T)(ref in T value, string file = __FILE__, uint line = __LINE__)
+{
+	return Serializer!AppendStream().write(value, true, file, line).stream.data;
+}
+
+T deserializeMem(T)(in ubyte[] data, string file = __FILE__, uint line = __LINE__)
+{
+	return data.Serializer!MemoryStream
+		.read!T(true, file, line);
+}
+
 struct Serializer(Stream)
 {
 	this(A...)(auto ref A args)
@@ -124,26 +135,24 @@ private:
 	pragma(inline, true) void doProcess(bool Writing, T, P)(ref T data, ref P parent)
 	{
 		_depth++;
-		scope (success)
-			_depth--;
+		enum Reading = Writing == false;
 
 		auto evaluateData = tuple!(`input`, `parent`, `that`, `stream`)(input,
 				&parent, &data, stream);
 
-		enum Reading = Writing == false;
 		alias Fields = aliasSeqOf!(fieldsToProcess!T());
+		alias processElem = (ref a) => doProcess!Writing(a, data);
 
 		foreach (name; Fields)
 		{
 			_names[_depth] = name;
 
 			enum Elem = T.stringof ~ `.` ~ name;
+			enum Unserializable = `don't know how to process ` ~ Elem;
+
 			alias attrs = AliasSeq!(__traits(getAttributes, __traits(getMember, T, name)));
 
-			debug
-			{
-				static assert(allSatisfy!(isAttrValid, attrs), Elem ~ ` has invalid attributes`);
-			}
+			static assert(allSatisfy!(isAttrValid, attrs), Elem ~ ` has unknown attributes`);
 
 			auto p = &__traits(getMember, data, name);
 			alias R = typeof(*p);
@@ -219,7 +228,7 @@ private:
 				static if (Writing)
 					*arr = p.byKeyValue.map!(a => Pair(a.key, a.value)).array;
 
-				doProcess!Writing(aa, data);
+				processElem(aa);
 
 				static if (Reading)
 					*p = map!(a => tuple(a.tupleof))(*arr).assocArray;
@@ -229,7 +238,7 @@ private:
 				alias E = ElementEncodingType!R;
 				enum isElemSimple = isDataSimple!E;
 
-				static assert(isElemSimple || is(E == struct), `can't serialize ` ~ Elem);
+				static assert(isElemSimple || is(E == struct), Unserializable);
 
 				alias LenAttr = templateParamFor!(ArrayLength, attrs);
 
@@ -263,7 +272,7 @@ private:
 					}
 					else
 					{
-						uint elemsCnt = cast(uint)LenAttr(evaluateData);
+						const size_t elemsCnt = LenAttr(evaluateData);
 
 						static if (Writing)
 							assert(p.length == elemsCnt);
@@ -316,7 +325,7 @@ private:
 					static if (Writing)
 					{
 						foreach (ref v; *p)
-							doProcess!Writing(v, data);
+							processElem(v);
 					}
 					else
 					{
@@ -325,7 +334,7 @@ private:
 							while (stream.length)
 							{
 								E v;
-								doProcess!Writing(v, data);
+								processElem(v);
 								*varPtr ~= v;
 							}
 						}
@@ -336,19 +345,51 @@ private:
 								foreach (_; 0 .. elemsCnt)
 								{
 									E v;
-									doProcess!Writing(v, data);
+									processElem(v);
 									*varPtr ~= v;
 								}
 							}
 							else
 								foreach (ref v; *varPtr)
-									doProcess!Writing(v, data);
+									processElem(v);
 						}
 					}
 				}
 			}
+			else static if (isPointer!R)
+			{
+				alias E = PointerTarget!R;
+				static assert(is(E == struct), Unserializable);
+
+				bool processPointer;
+
+				static if (Writing)
+				{
+					processPointer = *p != null;
+					stream.write(processPointer.toByte) || errorWrite;
+				}
+				else
+				{
+					stream.read(processPointer.toByte) || errorRead;
+				}
+
+				if (processPointer)
+				{
+					static if (Reading)
+					{
+						*varPtr = new E;
+						processElem(**varPtr);
+					}
+					else
+						processElem(**p);
+				}
+			}
 			else
-				doProcess!Writing(*p, data);
+			{
+				static assert(is(R == struct), Unserializable);
+
+				processElem(*p);
+			}
 
 			static if (Reading)
 			{
@@ -363,6 +404,8 @@ private:
 					validate(evaluateData) || errorValid(p);
 			}
 		}
+
+		_depth--;
 	}
 
 	template templateParamFor(alias C, A...)

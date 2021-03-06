@@ -1,5 +1,25 @@
 module utile.binary.tests;
-import std, utile.misc, utile.binary, utile.binary.helpers;
+import std, utile.misc, utile.binary, utile.logger, utile.binary.helpers;
+
+unittest
+{
+	static struct S
+	{
+		ubyte val;
+		S* next;
+	}
+
+	auto s = S(12);
+	s.next = new S(13);
+
+	auto data = s.serializeMem;
+	assert(data == [12, 1, 13, 0]);
+
+	auto v = data.deserializeMem!S;
+
+	assert(v.val == s.val);
+	assert(v.next && *v.next == *s.next);
+}
 
 unittest
 {
@@ -113,11 +133,10 @@ unittest
 	];
 
 	Test t;
-	auto written = Serializer!AppendStream().write(t).stream.data;
+	auto written = serializeMem(t);
 
 	assert(written == data);
-	assert(data.Serializer!MemoryStream
-			.read!Test == t);
+	assert(data.deserializeMem!Test == t);
 
 	enum File = `__tmp`;
 	serializeFile(File, t);

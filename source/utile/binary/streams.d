@@ -98,13 +98,13 @@ struct AppendStream
 {
 	bool write(in ubyte[] v)
 	{
-		_data ~= v;
+		data ~= v;
 		return true;
 	}
 
 	bool wskip(size_t cnt)
 	{
-		_data.length += cnt;
+		data.length += cnt;
 		return true;
 	}
 
@@ -113,8 +113,7 @@ struct AppendStream
 		return 0;
 	}
 
-private:
-	mixin publicProperty!(ubyte[], `data`);
+	ubyte[] data;
 }
 
 struct LengthCalcStream
