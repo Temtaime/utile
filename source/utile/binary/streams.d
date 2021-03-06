@@ -1,5 +1,5 @@
 module utile.binary.streams;
-import utile.misc;
+import std.mmfile, utile.binary, utile.misc, utile.except;
 
 struct MemoryStream
 {

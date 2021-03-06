@@ -113,16 +113,9 @@ unittest
 	];
 
 	Test t;
+	auto written = Serializer!AppendStream().write(t).stream.data;
 
-	assert(BinarySerializer!AppendStream().write(t).stream.data == data);
-	assert(data.BinarySerializer!MemoryStream
+	assert(written == data);
+	assert(data.Serializer!MemoryStream
 			.read!Test == t);
-
-	auto name = `__tmp`;
-	//binaryWriteFile(name, t);
-
-	//assert(read(name) == data);
-	//assert(binaryReadFile!Test(name) == t);
-
-	//remove(name);
 }

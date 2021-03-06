@@ -3,7 +3,7 @@ import std, std.typetuple, utile.misc, utile.except, utile.binary.helpers;
 
 public import utile.binary.attrs, utile.binary.funcs, utile.binary.streams;
 
-struct BinarySerializer(Stream)
+struct Serializer(Stream)
 {
 	this(A...)(auto ref A args)
 	{
@@ -13,69 +13,111 @@ struct BinarySerializer(Stream)
 	T read(T)(bool ensureFullyParsed = true, string file = __FILE__, uint line = __LINE__)
 			if (is(T == struct))
 	{
-		_l = line;
-		_f = file;
-		_info = T.stringof;
+		T res;
 
-		T t;
-		process(t, t, t);
+		auto s = SerializerImpl!(Stream, T)(&res, &stream, line, file);
+		s.process!false(res, res);
 
 		if (ensureFullyParsed)
-			stream.length && throwError!`%u extra bytes was not parsed`(file, line, stream.length);
+			stream.length && throwError!`%u bytes were not parsed`(file, line, stream.length);
 
-		return t;
+		return res;
 	}
 
 	ref write(T)(auto ref in T t, bool ensureNoSpaceLeft = true,
 			string file = __FILE__, uint line = __LINE__) if (is(T == struct))
 	{
-		_l = line;
-		_f = file;
-		_info = T.stringof;
-
-		process!true(t, t, t);
+		auto s = SerializerImpl!(Stream, const(T))(&t, &stream, line, file);
+		s.process!true(t, t);
 
 		if (ensureNoSpaceLeft)
-			stream.length && throwError!`%u extra bytes were not occupied`(file,
-					line, stream.length);
+			stream.length && throwError!`%u bytes were not occupied`(file, line, stream.length);
 
 		return this;
 	}
 
 	Stream stream;
+}
+
 private:
-	debug
+
+struct SerializerImpl(Stream, I)
+{
+	void process(bool Writing, T, P)(ref T data, ref P parent)
 	{
-		enum errorRead = `throwError!"can't read %s.%s variable"(_f, _l, _info, name)`;
-		enum errorWrite = `throwError!"can't write %s.%s variable"(_f, _l, _info, name)`;
-		enum errorRSkip = `throwError!"can't skip when reading %s.%s variable"(_f, _l, _info, name)`;
-		enum errorWSkip = `throwError!"can't skip when writing %s.%s variable"(_f, _l, _info, name)`;
-		enum errorCheck = `throwError!"variable %s.%s mismatch(%s when %s expected)"(_f, _l, _info, name, tmp, *p)`;
-		enum errorValid = `throwError!"variable %s.%s has invalid value %s"(_f, _l, _info, name, *p)`;
-	}
-	else
-	{
-		enum errorRead = `throwError!"can't read %s"(_f, _l, _info)`;
-		enum errorWrite = `throwError!"can't write %s"(_f, _l, _info)`;
-		enum errorRSkip = errorRead;
-		enum errorWSkip = errorWrite;
-		enum errorCheck = errorRead;
-		enum errorValid = errorRead;
+		_depth = 1;
+		_names[0] = Unqual!T.stringof;
+
+		doProcess!Writing(data, parent);
 	}
 
-	enum checkLength = `E.sizeof * elemsCnt < 512 * 1024 * 1024 || throwError!"length of %s.%s variable is too big(%u)"(_f, _l, _info, name, elemsCnt);`;
+	I* input;
+	Stream* stream;
 
-	void process(bool isWrite = false, T, S, P)(ref T data, ref S st, ref P parent)
+	uint line;
+	string file;
+private:
+	pragma(inline, false)
 	{
-		auto evaluateData = tuple!(`input`, `parent`, `that`, `stream`)(&st,
-				&parent, &data, &stream);
+		@property variableName()
+		{
+			return _names[0 .. _depth].join('.');
+		}
 
+		bool commonError(string msg)
+		{
+			return throwError!"can't %s %s variable"(file, line, msg, variableName);
+		}
+
+		bool errorRead()
+		{
+			return commonError(`read`);
+		}
+
+		bool errorWrite()
+		{
+			return commonError(`write`);
+		}
+
+		bool errorRSkip()
+		{
+			return commonError(`skip when reading`);
+		}
+
+		bool errorWSkip()
+		{
+			return commonError(`skip when writing`);
+		}
+
+		bool errorCheck(T)(const(T)* tmp, const(T)* p)
+		{
+			return throwError!"variable %s mismatch(%s when %s expected)"(file,
+					line, variableName, *tmp, *p);
+		}
+
+		bool errorValid(T)(T* p)
+		{
+			return throwError!"variable %s has invalid value %s"(file, line, variableName, *p);
+		}
+	}
+
+	void doProcess(bool Writing, T, P)(ref T data, ref P parent)
+	{
+		_depth++;
+		scope (success)
+			_depth--;
+
+		auto evaluateData = tuple!(`input`, `parent`, `that`, `stream`)(input,
+				&parent, &data, stream);
+
+		enum Reading = Writing == false;
 		alias Fields = aliasSeqOf!(fieldsToProcess!T());
 
 		foreach (name; Fields)
 		{
-			enum Elem = T.stringof ~ `.` ~ name;
+			_names[_depth] = name;
 
+			enum Elem = T.stringof ~ `.` ~ name;
 			alias attrs = AliasSeq!(__traits(getAttributes, __traits(getMember, T, name)));
 
 			debug
@@ -93,10 +135,10 @@ private:
 				{
 					size_t cnt = skip(evaluateData);
 
-					static if (isWrite)
-						stream.wskip(cnt) || mixin(errorWSkip);
+					static if (Writing)
+						stream.wskip(cnt) || errorWSkip;
 					else
-						stream.rskip(cnt) || mixin(errorRSkip);
+						stream.rskip(cnt) || errorRSkip;
 				}
 			}
 
@@ -107,7 +149,7 @@ private:
 				{
 					if (ignore(evaluateData))
 					{
-						static if (!isWrite)
+						static if (Reading)
 						{
 							alias def = templateParamFor!(Default, attrs);
 
@@ -120,7 +162,7 @@ private:
 				}
 			}
 
-			static if (!isWrite)
+			static if (Reading)
 			{
 				static if (is(R == immutable))
 				{
@@ -133,10 +175,10 @@ private:
 
 			static if (isDataSimple!R)
 			{
-				static if (isWrite)
-					stream.write(toByte(*p)) || mixin(errorWrite);
+				static if (Writing)
+					stream.write(toByte(*p)) || errorWrite;
 				else
-					stream.read(toByte(*varPtr)) || mixin(errorRead);
+					stream.read(toByte(*varPtr)) || errorRead;
 			}
 			else static if (isAssociativeArray!R)
 			{
@@ -154,12 +196,12 @@ private:
 				AA aa;
 				auto arr = &aa.tupleof[0];
 
-				static if (isWrite)
+				static if (Writing)
 					*arr = p.byKeyValue.map!(a => Pair(a.key, a.value)).array;
 
-				process!isWrite(aa, st, data);
+				doProcess!Writing(aa, data);
 
-				static if (!isWrite)
+				static if (Reading)
 					*p = map!(a => tuple(a.tupleof))(*arr).assocArray;
 			}
 			else static if (isArray!R)
@@ -187,15 +229,15 @@ private:
 
 						LenAttr elemsCnt;
 
-						static if (isWrite)
+						static if (Writing)
 						{
 							assert(p.length <= LenAttr.max);
 
 							elemsCnt = cast(LenAttr)p.length;
-							stream.write(elemsCnt.toByte) || mixin(errorWrite);
+							stream.write(elemsCnt.toByte) || errorWrite;
 						}
 						else
-							stream.read(elemsCnt.toByte) || mixin(errorRead);
+							stream.read(elemsCnt.toByte) || errorRead;
 
 						enum isRest = false;
 					}
@@ -203,7 +245,7 @@ private:
 					{
 						uint elemsCnt = cast(uint)LenAttr(evaluateData);
 
-						static if (isWrite)
+						static if (Writing)
 							assert(p.length == elemsCnt);
 
 						enum isRest = false;
@@ -222,35 +264,30 @@ private:
 
 				static if (isElemSimple)
 				{
-					static if (isWrite)
+					static if (Writing)
 					{
-						stream.write(toByte(*p)) || mixin(errorWrite);
+						stream.write(toByte(*p)) || errorWrite;
 
 						static if (isStr && !isLen)
 						{
 							ubyte[1] terminator;
-							stream.write(terminator) || mixin(errorWrite);
+							stream.write(terminator) || errorWrite;
 						}
 					}
 					else
 					{
 						static if (isStr && !isLen)
-							stream.readstr(*varPtr) || mixin(errorRead);
+							stream.readstr(*varPtr) || errorRead;
 						else
 						{
 							ubyte[] arr;
 
 							static if (isRest)
 							{
-								stream.read(arr, stream.length & ~(E.sizeof - 1))
-									|| mixin(errorRead);
+								stream.read(arr, stream.length & ~(E.sizeof - 1)) || errorRead;
 							}
 							else
-							{
-								mixin(checkLength);
-
-								stream.read(arr, elemsCnt * E.sizeof) || mixin(errorRead);
-							}
+								stream.read(arr, elemsCnt * E.sizeof) || errorRead;
 
 							*varPtr = (cast(E*)arr.ptr)[0 .. arr.length / E.sizeof];
 						}
@@ -258,16 +295,10 @@ private:
 				}
 				else
 				{
-					debug
-					{
-						auto old = _info;
-						_info ~= `.` ~ name;
-					}
-
-					static if (isWrite)
+					static if (Writing)
 					{
 						foreach (ref v; *p)
-							process!isWrite(v, st, data);
+							doProcess!Writing(v, data);
 					}
 					else
 					{
@@ -276,8 +307,7 @@ private:
 							while (stream.length)
 							{
 								E v;
-								process!isWrite(v, st, data);
-
+								doProcess!Writing(v, data);
 								*varPtr ~= v;
 							}
 						}
@@ -285,54 +315,37 @@ private:
 						{
 							static if (isDyn)
 							{
-								mixin(checkLength);
-
-								*varPtr = new E[elemsCnt];
+								foreach (_; 0 .. elemsCnt)
+								{
+									E v;
+									doProcess!Writing(v, data);
+									*varPtr ~= v;
+								}
 							}
-
-							foreach (ref v; *varPtr)
-								process!isWrite(v, st, data);
+							else
+								foreach (ref v; *varPtr)
+									doProcess!Writing(v, data);
 						}
-					}
-
-					debug
-					{
-						_info = old;
 					}
 				}
 			}
 			else
-			{
-				debug
-				{
-					auto old = _info;
-					_info ~= `.` ~ name;
-				}
+				doProcess!Writing(*p, data);
 
-				process!isWrite(*p, st, data);
-
-				debug
-				{
-					_info = old;
-				}
-			}
-
-			static if (!isWrite)
+			static if (Reading)
 			{
 				static if (is(typeof(tmp)))
 				{
-					tmp == *p || mixin(errorCheck);
+					tmp == *p || errorCheck(&tmp, p);
 				}
 
 				alias validate = templateParamFor!(Validate, attrs);
 
 				static if (!is(validate == void))
-					validate(evaluateData) || mixin(errorValid);
+					validate(evaluateData) || errorValid(p);
 			}
 		}
 	}
-
-	enum isAttrValid(T) = is(T : SerializerAttr);
 
 	template templateParamFor(alias C, A...)
 	{
@@ -349,6 +362,8 @@ private:
 			alias templateParamFor = void;
 	}
 
-	uint _l;
-	string _f, _info;
+	enum isAttrValid(T) = is(T : SerializerAttr);
+
+	uint _depth;
+	string[64] _names;
 }
