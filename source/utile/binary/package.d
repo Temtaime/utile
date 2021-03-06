@@ -135,8 +135,8 @@ private:
 	pragma(inline, true) void doProcess(bool Writing, T, P)(ref T data, ref P parent)
 	{
 		_depth++;
-		enum Reading = Writing == false;
 
+		enum Reading = Writing == false;
 		auto evaluateData = tuple!(`input`, `parent`, `that`, `stream`)(input,
 				&parent, &data, stream);
 
@@ -145,7 +145,7 @@ private:
 
 		foreach (name; Fields)
 		{
-			_names[_depth] = name;
+			_names[_depth - 1] = name;
 
 			enum Elem = T.stringof ~ `.` ~ name;
 			enum Unserializable = `don't know how to process ` ~ Elem;
@@ -365,13 +365,11 @@ private:
 
 				static if (Writing)
 				{
-					processPointer = *p != null;
+					processPointer = !!*p;
 					stream.write(processPointer.toByte) || errorWrite;
 				}
 				else
-				{
 					stream.read(processPointer.toByte) || errorRead;
-				}
 
 				if (processPointer)
 				{
