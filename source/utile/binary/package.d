@@ -28,10 +28,11 @@ ubyte[] serializeMem(T)(ref in T value, string file = __FILE__, uint line = __LI
 	return Serializer!AppendStream().write(value, true, file, line).stream.data;
 }
 
-T deserializeMem(T)(in ubyte[] data, string file = __FILE__, uint line = __LINE__)
+T deserializeMem(T)(in ubyte[] data, bool ensureFullyParsed = true,
+		string file = __FILE__, uint line = __LINE__)
 {
 	return data.Serializer!MemoryStream
-		.read!T(true, file, line);
+		.read!T(ensureFullyParsed, file, line);
 }
 
 struct Serializer(Stream)
