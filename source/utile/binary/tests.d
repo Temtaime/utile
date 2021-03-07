@@ -1,6 +1,39 @@
 module utile.binary.tests;
 import std, utile.misc, utile.binary, utile.logger, utile.binary.helpers;
 
+void ensureResult(T)(ref in T value, const(ubyte)[] data)
+{
+	const res = value.serializeMem;
+	assert(res == data, res.to!string);
+
+	const parsed = data.deserializeMem!T;
+	assert(parsed == value, parsed.to!string);
+}
+
+unittest
+{
+	static struct B
+	{
+		uint k;
+		string s;
+	}
+
+	static struct A
+	{
+		B b;
+		ubyte v;
+	}
+
+	A a;
+	a.v = 10;
+	a.b.k = 12;
+	a.b.s = `hello`;
+
+	const(ubyte)[] data = [12, 0, 0, 0, 104, 101, 108, 108, 111, 0, 10];
+
+	ensureResult(a, data);
+}
+
 unittest
 {
 	static struct S
@@ -173,13 +206,4 @@ unittest
 		std.file.remove(File);
 
 	assert(deserializeFile!Test(File) == t);
-}
-
-void ensureResult(T)(ref in T value, const(ubyte)[] data)
-{
-	const res = value.serializeMem;
-	assert(res == data, res.to!string);
-
-	const parsed = data.deserializeMem!T;
-	assert(parsed == value, parsed.to!string);
 }
