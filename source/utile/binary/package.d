@@ -49,9 +49,8 @@ struct Serializer(Stream)
 		auto s = SerializerImpl!(Stream, T)(&value, &stream, line, file);
 		s.process!false(value, value);
 
-		if (ensureFullyParsed)
-			stream.length && throwError!`%u bytes were not parsed`(file, line, stream.length);
-
+		ensureFullyParsed && stream.length
+			&& throwError!`%u bytes were not parsed`(file, line, stream.length);
 		return value;
 	}
 
@@ -61,9 +60,8 @@ struct Serializer(Stream)
 		auto s = SerializerImpl!(Stream, const(T))(&value, &stream, line, file);
 		s.process!true(value, value);
 
-		if (ensureNoSpaceLeft)
-			stream.length && throwError!`%u bytes were not occupied`(file, line, stream.length);
-
+		ensureNoSpaceLeft && stream.length
+			&& throwError!`%u bytes were not occupied`(file, line, stream.length);
 		return this;
 	}
 
@@ -241,6 +239,7 @@ private:
 				static assert(isElemSimple || is(E == struct), Unserializable);
 
 				alias LenAttr = templateParamFor!(ArrayLength, attrs);
+				enum isZeroTerminated = staticIndexOf!(ZeroTerminated, attrs) >= 0;
 
 				static if (is(LenAttr == void))
 				{
@@ -274,39 +273,82 @@ private:
 					{
 						const size_t elemsCnt = LenAttr(evaluateData);
 
-						static if (Writing)
+						static if (Writing && isZeroTerminated == false)
 							assert(p.length == elemsCnt);
 
 						enum isRest = false;
 					}
 				}
 
-				enum isStr = is(R : string);
+				enum isStr = isSomeString!R;
 				enum isLen = is(typeof(elemsCnt));
 				enum isDyn = isDynamicArray!R;
 
-				static if (isDyn)
-					static assert(isStr || isLen || isRest, `length of ` ~ Elem ~ ` is unknown`);
+				enum processAsString = isStr && isLen == false || isZeroTerminated;
+
+				static if (processAsString)
+				{
+					static assert(isUnsigned!E || isSomeChar!E,
+							`only unsigned elements are allowed for string ` ~ Elem);
+				}
 				else
-					static assert(!(isLen || isRest),
-							`static array ` ~ Elem ~ ` can not have a length`);
+				{
+					static if (isDyn)
+						static assert(isStr || isLen || isRest, `length is unknown for ` ~ Elem);
+					else
+						static assert(!(isLen || isRest),
+								`specifying length is not allowed for a static array ` ~ Elem);
+				}
 
 				static if (isElemSimple)
 				{
 					static if (Writing)
 					{
+						static if (processAsString)
+						{
+							debug
+							{
+								assert(all!(a => !!a)(*p),
+										`zero is found in zero-terminated string ` ~ Elem);
+
+								static if (isLen)
+									assert(p.length <= elemsCnt,
+											`no space left in the buffer for string ` ~ Elem);
+							}
+						}
+
 						stream.write(toByte(*p)) || errorWrite;
 
-						static if (isStr && !isLen)
+						static if (processAsString)
 						{
-							ubyte[1] terminator;
-							stream.write(terminator) || errorWrite;
+							static if (isLen)
+							{
+								if (p.length == elemsCnt)
+									continue;
+							}
+
+							E terminator = 0;
+							stream.write(terminator.toByte) || errorWrite;
+
+							static if (isLen)
+								stream.wskip(elemsCnt - p.length - 1) || errorWSkip;
 						}
 					}
 					else
 					{
-						static if (isStr && !isLen)
-							stream.readstr(*varPtr) || errorRead;
+						static if (processAsString)
+						{
+							static if (isLen == false)
+								auto elemsCnt = size_t.max;
+
+							stream.readstr(*varPtr, elemsCnt) || errorRead;
+
+							static if (isLen)
+							{
+								if (varPtr.length != elemsCnt)
+									stream.rskip(elemsCnt - p.length - 1) || errorRSkip;
+							}
+						}
 						else
 						{
 							ubyte[] arr;

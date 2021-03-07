@@ -12,6 +12,10 @@ class ToTheEnd : SerializerAttr
 {
 }
 
+class ZeroTerminated : SerializerAttr
+{
+}
+
 class Skip(alias F) : SerializerAttr
 {
 }

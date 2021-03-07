@@ -31,19 +31,21 @@ struct MemoryStream
 		return true;
 	}
 
-	bool readstr(ref string v)
+	bool readstr(E)(ref E[] v, size_t maxLen)
 	{
-		auto t = _p;
-		auto r = length;
+		auto start = cast(E*)_p;
 
-		for (; r && *t; r--, t++)
+		auto t = start;
+		auto r = length / E.sizeof;
+
+		for (; r && *t && maxLen; r--, t++, maxLen--)
 		{
 		}
 
-		if (r)
+		if (r || !maxLen)
 		{
-			v = cast(string)_p[0 .. t - _p].idup;
-			_p = t + 1;
+			v = start[0 .. t - start].dup;
+			_p = cast(ubyte*)(t + (maxLen ? 1 : 0));
 
 			return true;
 		}

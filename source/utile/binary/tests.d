@@ -5,6 +5,37 @@ unittest
 {
 	static struct S
 	{
+		@ZeroTerminated const(ubyte)[] str;
+		wstring wstr;
+
+		@(ArrayLength!(_ => 6), ZeroTerminated) string st;
+		@(ArrayLength!(_ => 6), ZeroTerminated) string st2;
+
+		@(ArrayLength!(_ => 4), ZeroTerminated) ubyte[] st3;
+	}
+
+	S s;
+	s.str = [1, 2, 3];
+	s.wstr = `1234`w;
+	s.st = `abc`;
+	s.st2 = `abcdef`;
+	s.st3 = [1, 2];
+
+	const(ubyte)[] data = [
+		1, 2, 3, 0, // str
+		49, 0, 50, 0, 51, 0, 52, 0, 0, 0, // wstr
+		97, 98, 99, 0, 0, 0, // st
+		97, 98, 99, 100, 101, 102, // st2
+		1, 2, 0, 0, // st3
+	];
+
+	ensureResult(s, data);
+}
+
+unittest
+{
+	static struct S
+	{
 		ubyte val;
 		S* next;
 	}
@@ -92,7 +123,7 @@ unittest
 
 		union
 		{
-			int a = 11;
+			int a;
 			float b;
 			long u;
 			double gg;
@@ -100,15 +131,15 @@ unittest
 
 		S s;
 		static immutable char[4] c = `ABCD`;
-		string d = `abc`;
+		string d;
 
-		@(ArrayLength!uint) int[] e = [1, 2, 3];
-		@(ArrayLength!(a => a.that.e.length)) int[] r = [4, 5, 6];
+		@(ArrayLength!uint) int[] e;
+		@(ArrayLength!(a => a.that.e.length)) int[] r;
 
 		@Ignored int kk;
 		@(IgnoreIf!(a => a.that.r.length == 3)) int rt;
 
-		@(ToTheEnd, Skip!(a => a.that.rt)) byte[] q = [1, 2, 3, 4];
+		@(ToTheEnd, Skip!(a => a.that.rt)) byte[] q;
 	}
 
 	static assert(fieldsToProcess!Test == [
@@ -128,15 +159,12 @@ unittest
 		4, 0, 0, 0, // r[0], length is set by the user
 		5, 0, 0, 0, // r[1]
 		6, 0, 0, 0, // r[2]
-		1, 2, 3,
-		4 // q[4]
+		1, 2, 3, 4, // q[4]
 	];
 
-	Test t;
-	auto written = serializeMem(t);
+	Test t = {a: 11, d: `abc`, e: [1, 2, 3], r: [4, 5, 6], q: [1, 2, 3, 4]};
 
-	assert(written == data);
-	assert(data.deserializeMem!Test == t);
+	ensureResult(t, data);
 
 	enum File = `__tmp`;
 	serializeFile(File, t);
@@ -145,4 +173,13 @@ unittest
 		std.file.remove(File);
 
 	assert(deserializeFile!Test(File) == t);
+}
+
+void ensureResult(T)(ref in T value, const(ubyte)[] data)
+{
+	const res = value.serializeMem;
+	assert(res == data, res.to!string);
+
+	const parsed = data.deserializeMem!T;
+	assert(parsed == value, parsed.to!string);
 }
