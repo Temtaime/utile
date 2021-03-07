@@ -29,7 +29,11 @@ unittest
 	a.b.k = 12;
 	a.b.s = `hello`;
 
-	const(ubyte)[] data = [12, 0, 0, 0, 104, 101, 108, 108, 111, 0, 10];
+	const(ubyte)[] data = [
+		12, 0, 0, 0, // a.b.k
+		104, 101, 108, 108, 111, 0, // a.b.s
+		10, // a.v
+	];
 
 	ensureResult(a, data);
 }
