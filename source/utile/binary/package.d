@@ -28,7 +28,7 @@ ubyte[] serializeMem(T)(ref in T value, string file = __FILE__, uint line = __LI
 	return Serializer!AppendStream().write(value, true, file, line).stream.data;
 }
 
-T deserializeMem(T)(in ubyte[] data, bool ensureFullyParsed = true,
+T deserializeMem(T)(in void[] data, bool ensureFullyParsed = true,
 		string file = __FILE__, uint line = __LINE__)
 {
 	return data.Serializer!MemoryStream
