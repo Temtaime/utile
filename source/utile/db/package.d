@@ -3,16 +3,32 @@ import std, utile.except;
 
 public import utile.db.mysql, utile.db.sqlite;
 
+alias Blob = void[];
+
 unittest
 {
 	{
 		scope db = new SQLite(`:memory:`);
 
-		auto res = db.query!(uint, string)(`select ?, ?;`, 123, `hello`).array;
-		auto res2 = db.queryOne!uint(`select ?;`, 123);
+		{
+			const(ubyte)[] arr = [1, 2, 3];
 
-		assert(res.equal(tuple(123, `hello`).only));
-		assert(res2 == 123);
+			auto res = db.queryOne!Blob(`select ?, null;`, cast(Blob)arr);
+
+			assert(res == arr);
+		}
+
+		{
+			auto res = db.query!(uint, string)(`select ?, ?;`, 123, `hello`).array;
+
+			assert(res.equal(tuple(123, `hello`).only));
+		}
+
+		{
+			auto res = db.queryOne!uint(`select ?;`, 123);
+
+			assert(res == 123);
+		}
 	}
 
 	version (Utile_Mysql)

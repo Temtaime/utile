@@ -74,29 +74,52 @@ private:
 			}
 
 			auto front()
+			in
 			{
 				assert(_hasRow);
-
+			}
+			body
+			{
 				Tuple!A r;
 
 				foreach (i, ref v; r)
 				{
 					alias T = A[i];
 
-					v = sqlite3_column_text(stmt, i).fromStringz.to!T;
+					static if (isFloatingPoint!T)
+					{
+						v = cast(T)sqlite3_column_double(stmt, i);
+					}
+					else static if (isIntegral!T)
+					{
+						v = cast(T)sqlite3_column_int64(stmt, i);
+					}
+					else static if (is(T == string))
+					{
+						v = sqlite3_column_text(stmt, i)[0 .. dataLen(i)].idup;
+					}
+					else static if (is(T == Blob))
+					{
+						v = sqlite3_column_blob(stmt, i)[0 .. dataLen(i)].dup;
+					}
+					else
+					{
+						static assert(false);
+					}
 				}
 
 				static if (A.length > 1)
-				{
 					return r;
-				}
 				else
-				{
 					return r[0];
-				}
 			}
 
 		private:
+			auto dataLen(uint col)
+			{
+				return sqlite3_column_bytes(stmt, col);
+			}
+
 			bool _hasRow;
 		}
 
@@ -143,10 +166,9 @@ private:
 				res = sqlite3_bind_text64(stmt, idx, v.ptr, v.length,
 						SQLITE_TRANSIENT, SQLITE_UTF8);
 			}
-			else static if (isArray!T)
+			else static if (is(T == Blob))
 			{
-				auto data = v.toByte;
-				res = sqlite3_bind_blob64(stmt, idx, data.ptr, data.length, SQLITE_TRANSIENT);
+				res = sqlite3_bind_blob64(stmt, idx, v.ptr, v.length, SQLITE_TRANSIENT);
 			}
 			else
 			{
