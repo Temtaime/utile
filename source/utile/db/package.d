@@ -3,7 +3,7 @@ import std, utile.except;
 
 public import utile.db.mysql, utile.db.sqlite;
 
-alias Blob = void[];
+alias Blob = const(ubyte)[];
 
 unittest
 {
@@ -11,9 +11,9 @@ unittest
 		scope db = new SQLite(`:memory:`);
 
 		{
-			const(ubyte)[] arr = [1, 2, 3];
+			Blob arr = [1, 2, 3];
 
-			auto res = db.queryOne!Blob(`select ?, null;`, cast(Blob)arr);
+			auto res = db.queryOne!Blob(`select ?;`, arr);
 
 			assert(res == arr);
 		}

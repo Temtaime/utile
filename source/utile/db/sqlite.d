@@ -57,7 +57,7 @@ private:
 
 			void popFront()
 			{
-				assert(!empty);
+				assert(_hasRow);
 				_hasRow = self.execute(stmt);
 			}
 
@@ -100,7 +100,7 @@ private:
 					}
 					else static if (is(T == Blob))
 					{
-						v = sqlite3_column_blob(stmt, i)[0 .. dataLen(i)].dup;
+						v = cast(Blob)sqlite3_column_blob(stmt, i)[0 .. dataLen(i)].dup;
 					}
 					else
 					{
