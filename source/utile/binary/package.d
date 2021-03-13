@@ -285,7 +285,7 @@ private:
 				enum isLen = is(typeof(elemsCnt));
 				enum isDyn = isDynamicArray!R;
 
-				enum processAsString = (isStr && !isLen || isZeroTerminated) && !isRest;
+				enum processAsString = isStr && !(isLen || isRest) || isZeroTerminated;
 
 				static if (processAsString)
 				{
@@ -355,7 +355,10 @@ private:
 							ubyte[] arr;
 
 							static if (isRest)
-								stream.read(arr, stream.length & ~(E.sizeof - 1)) || errorRead;
+							{
+								stream.length % E.sizeof && errorRead;
+								stream.read(arr, stream.length) || errorRead;
+							}
 							else
 								stream.read(arr, elemsCnt * E.sizeof) || errorRead;
 
