@@ -122,9 +122,9 @@ private:
 		foreach (uint i, v; args)
 		{
 			int res;
-
-			alias T = typeof(v);
 			auto idx = i + 1;
+
+			alias T = Unqual!(typeof(v));
 
 			static if (is(T == typeof(null)))
 			{
@@ -138,10 +138,15 @@ private:
 			{
 				res = sqlite3_bind_int64(stmt, idx, v);
 			}
-			else static if (isSomeString!T)
+			else static if (is(T == string))
 			{
-				res = sqlite3_bind_text(stmt, idx, v.toStringz,
-						cast(int)v.length, SQLITE_TRANSIENT);
+				res = sqlite3_bind_text64(stmt, idx, v.ptr, v.length,
+						SQLITE_TRANSIENT, SQLITE_UTF8);
+			}
+			else static if (isArray!T)
+			{
+				auto data = v.toByte;
+				res = sqlite3_bind_blob64(stmt, idx, data.ptr, data.length, SQLITE_TRANSIENT);
 			}
 			else
 			{
