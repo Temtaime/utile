@@ -1,6 +1,6 @@
 module utile.db.sqlite;
 import std.conv, std.meta, std.array, std.string, std.traits, std.typecons,
-	std.exception, std.algorithm, etc.c.sqlite3, utile.db, utile.except;
+	std.exception, std.algorithm, etc.c.sqlite3, utile.db, utile.except, utile.misc;
 
 final class SQLite
 {
