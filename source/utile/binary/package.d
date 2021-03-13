@@ -135,7 +135,7 @@ private:
 	{
 		_depth++;
 
-		enum Reading = Writing == false;
+		enum Reading = !Writing;
 		auto evaluateData = tuple!(`input`, `parent`, `that`, `stream`)(input,
 				&parent, &data, stream);
 
@@ -274,7 +274,7 @@ private:
 					{
 						const size_t elemsCnt = LenAttr(evaluateData);
 
-						static if (Writing && isZeroTerminated == false)
+						static if (Writing && !isZeroTerminated)
 							assert(p.length == elemsCnt);
 
 						enum isRest = false;
@@ -285,7 +285,7 @@ private:
 				enum isLen = is(typeof(elemsCnt));
 				enum isDyn = isDynamicArray!R;
 
-				enum processAsString = isStr && isLen == false || isZeroTerminated;
+				enum processAsString = (isStr && !isLen || isZeroTerminated) && !isRest;
 
 				static if (processAsString)
 				{
@@ -339,7 +339,7 @@ private:
 					{
 						static if (processAsString)
 						{
-							static if (isLen == false)
+							static if (!isLen)
 								auto elemsCnt = size_t.max;
 
 							stream.readstr(*varPtr, elemsCnt) || errorRead;

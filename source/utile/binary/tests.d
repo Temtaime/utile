@@ -47,8 +47,10 @@ unittest
 
 		@(ArrayLength!(_ => 6), ZeroTerminated) string st;
 		@(ArrayLength!(_ => 6), ZeroTerminated) string st2;
-
 		@(ArrayLength!(_ => 4), ZeroTerminated) ubyte[] st3;
+
+		@ArrayLength!(_ => 6) string st4;
+		@ToTheEnd string st5;
 	}
 
 	S s;
@@ -57,6 +59,8 @@ unittest
 	s.st = `abc`;
 	s.st2 = `abcdef`;
 	s.st3 = [1, 2];
+	s.st4 = `qwerty`;
+	s.st5 = `a`;
 
 	const(ubyte)[] data = [
 		1, 2, 3, 0, // str
@@ -64,6 +68,28 @@ unittest
 		97, 98, 99, 0, 0, 0, // st
 		97, 98, 99, 100, 101, 102, // st2
 		1, 2, 0, 0, // st3
+		113, 119, 101, 114, 116, 121, // st4
+		97, // st5
+	];
+
+	ensureResult(s, data);
+}
+
+unittest
+{
+	struct S
+	{
+		ubyte a;
+		@ToTheEnd wstring d;
+	}
+
+	S s;
+	s.a = 10;
+	s.d = `hello`w;
+
+	const(ubyte)[] data = [
+		10, // a
+		104, 0, 101, 0, 108, 0, 108, 0, 111, 0, // d
 	];
 
 	ensureResult(s, data);
