@@ -15,7 +15,7 @@ jobs:
         include:
           - arch: x86
             os: windows-latest
-            dub_arch: x86
+            dub_arch: x86mscoff
             dub_compiler: ldc-latest
 
           - arch: x64
@@ -30,7 +30,7 @@ jobs:
 
           - arch: x86
             os: windows-latest
-            dub_arch: x86
+            dub_arch: x86mscoff
             dub_compiler: dmd-latest
 
           - arch: x64
@@ -56,4 +56,4 @@ jobs:
           compiler: ${{ matrix.dub_compiler }}
 
       - run: |
-          dub test -b unittest -a ${{ matrix.dub_arch }}
+          dub test -b unittest -a ${{ matrix.dub_arch }} -v
