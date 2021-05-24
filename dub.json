@@ -5,6 +5,9 @@
 		"Temtaime"
 	],
 	"description": "Useful things for D",
+	"dflags": [
+		"-preview=shortenedMethods"
+	],
 	"libs-windows-x86": [
 		"$PACKAGE_DIR/bin/utile_x86"
 	],

@@ -4,9 +4,8 @@ import std.traits;
 mixin template publicProperty(T, string Name, string Value = null)
 {
 	mixin(`
-		public ref ` ~ Name ~ `() @property const { return _` ~ Name ~ `; }
-		T _` ~ Name ~ (Value.length
-			? `=` ~ Value : null) ~ `;`);
+			public ref ` ~ Name ~ `() const @property => _` ~ Name ~ `;
+			T _` ~ Name ~ (Value.length ? `=` ~ Value : null) ~ `;`);
 }
 
 auto as(T, E)(E data) if (isDynamicArray!E)

@@ -28,8 +28,7 @@ ubyte[] serializeMem(T)(ref in T value, string file = __FILE__, uint line = __LI
 	return Serializer!AppendStream().write(value, true, file, line).stream.data;
 }
 
-T deserializeMem(T)(in void[] data, bool ensureFullyParsed = true,
-		string file = __FILE__, uint line = __LINE__)
+T deserializeMem(T)(in void[] data, bool ensureFullyParsed = true, string file = __FILE__, uint line = __LINE__)
 {
 	return data.Serializer!MemoryStream
 		.read!T(ensureFullyParsed, file, line);
@@ -42,27 +41,24 @@ struct Serializer(Stream)
 		stream = Stream(args);
 	}
 
-	T read(T)(bool ensureFullyParsed = true, string file = __FILE__, uint line = __LINE__)
-			if (is(T == struct))
+	T read(T)(bool ensureFullyParsed = true, string file = __FILE__, uint line = __LINE__) if (is(T == struct))
 	{
 		T value;
 
 		auto s = SerializerImpl!(Stream, T)(&value, &stream, line, file);
 		s.process!false(value, value);
 
-		ensureFullyParsed && stream.length
-			&& throwError!`%u bytes were not parsed`(file, line, stream.length);
+		ensureFullyParsed && stream.length && throwError!`%u bytes were not parsed`(file, line, stream.length);
 		return value;
 	}
 
-	ref write(T)(auto ref in T value, bool ensureNoSpaceLeft = true,
-			string file = __FILE__, uint line = __LINE__) if (is(T == struct))
+	ref write(T)(auto ref in T value, bool ensureNoSpaceLeft = true, string file = __FILE__, uint line = __LINE__)
+			if (is(T == struct))
 	{
 		auto s = SerializerImpl!(Stream, const(T))(&value, &stream, line, file);
 		s.process!true(value, value);
 
-		ensureNoSpaceLeft && stream.length
-			&& throwError!`%u bytes were not occupied`(file, line, stream.length);
+		ensureNoSpaceLeft && stream.length && throwError!`%u bytes were not occupied`(file, line, stream.length);
 		return this;
 	}
 
@@ -121,8 +117,7 @@ private:
 
 		bool errorCheck(T)(const(T)* tmp, const(T)* p)
 		{
-			return throwError!"variable %s mismatch(%s when %s expected)"(file,
-					line, variableName, *tmp, *p);
+			return throwError!"variable %s mismatch(%s when %s expected)"(file, line, variableName, *tmp, *p);
 		}
 
 		bool errorValid(T)(T* p)
@@ -136,8 +131,7 @@ private:
 		_depth++;
 
 		enum Reading = !Writing;
-		auto evaluateData = tuple!(`input`, `parent`, `that`, `stream`)(input,
-				&parent, &data, stream);
+		auto evaluateData = tuple!(`input`, `parent`, `that`, `stream`)(input, &parent, &data, stream);
 
 		alias Fields = aliasSeqOf!(fieldsToProcess!T());
 		alias processElem = (ref a) => doProcess!Writing(a, data);
@@ -146,7 +140,7 @@ private:
 		{
 			_names[_depth - 1] = name;
 
-			enum Elem = T.stringof ~ `.` ~ name;
+			enum Elem = T.stringof ~ '.' ~ name;
 			enum Unserializable = `don't know how to process ` ~ Elem;
 
 			alias attrs = AliasSeq!(__traits(getAttributes, __traits(getMember, T, name)));
@@ -253,8 +247,7 @@ private:
 				{
 					static if (isType!LenAttr)
 					{
-						static assert(isUnsigned!LenAttr,
-								`length must be a function or an unsigned type for ` ~ Elem);
+						static assert(isUnsigned!LenAttr, `length must be a function or an unsigned type for ` ~ Elem);
 
 						LenAttr elemsCnt;
 
@@ -289,16 +282,14 @@ private:
 
 				static if (processAsString)
 				{
-					static assert(isUnsigned!E || isSomeChar!E,
-							`only unsigned elements are allowed for string ` ~ Elem);
+					static assert(isUnsigned!E || isSomeChar!E, `only unsigned elements are allowed for string ` ~ Elem);
 				}
 				else
 				{
 					static if (isDyn)
 						static assert(isStr || isLen || isRest, `length is unknown for ` ~ Elem);
 					else
-						static assert(!(isLen || isRest),
-								`specifying length is not allowed for a static array ` ~ Elem);
+						static assert(!(isLen || isRest), `specifying length is not allowed for a static array ` ~ Elem);
 				}
 
 				static if (isElemSimple)
@@ -309,12 +300,10 @@ private:
 						{
 							debug
 							{
-								assert(all!(a => !!a)(*p),
-										`zero is found in zero-terminated string ` ~ Elem);
+								assert(all!(a => !!a)(*p), `zero is found in zero-terminated string ` ~ Elem);
 
 								static if (isLen)
-									assert(p.length <= elemsCnt,
-											`no space left in the buffer for string ` ~ Elem);
+									assert(p.length <= elemsCnt, `no space left in the buffer for string ` ~ Elem);
 							}
 						}
 

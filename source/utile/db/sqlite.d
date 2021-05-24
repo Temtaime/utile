@@ -1,6 +1,6 @@
 module utile.db.sqlite;
-import std.conv, std.meta, std.array, std.string, std.traits, std.typecons,
-	std.exception, std.algorithm, etc.c.sqlite3, utile.db, utile.except, utile.misc;
+import std.conv, std.meta, std.array, std.string, std.traits, std.typecons, std.exception, std.algorithm,
+	etc.c.sqlite3, utile.db, utile.except, utile.misc;
 
 final class SQLite
 {
@@ -50,14 +50,15 @@ private:
 				sqlite3_reset(stmt);
 			}
 
-			const empty()
-			{
-				return !_hasRow;
-			}
+			const empty() => !_hasRow;
 
 			void popFront()
+			in
 			{
 				assert(_hasRow);
+			}
+			do
+			{
 				_hasRow = self.execute(stmt);
 			}
 
@@ -78,7 +79,7 @@ private:
 			{
 				assert(_hasRow);
 			}
-			body
+			do
 			{
 				Tuple!A r;
 
@@ -103,9 +104,7 @@ private:
 						v = cast(Blob)sqlite3_column_blob(stmt, i)[0 .. dataLen(i)].dup;
 					}
 					else
-					{
 						static assert(false);
-					}
 				}
 
 				static if (A.length > 1)
@@ -115,10 +114,7 @@ private:
 			}
 
 		private:
-			auto dataLen(uint col)
-			{
-				return sqlite3_column_bytes(stmt, col);
-			}
+			auto dataLen(uint col) => sqlite3_column_bytes(stmt, col);
 
 			bool _hasRow;
 		}
@@ -132,8 +128,7 @@ private:
 
 		if (!stmt)
 		{
-			sqlite3_prepare_v2(_db, sql.toStringz, cast(int)sql.length, &stmt, null) == SQLITE_OK
-				|| throwError(lastError);
+			sqlite3_prepare_v2(_db, sql.toStringz, cast(int)sql.length, &stmt, null) == SQLITE_OK || throwError(lastError);
 			_stmts[sql] = stmt;
 		}
 
@@ -163,32 +158,21 @@ private:
 			}
 			else static if (is(T == string))
 			{
-				res = sqlite3_bind_text64(stmt, idx, v.ptr, v.length,
-						SQLITE_TRANSIENT, SQLITE_UTF8);
+				res = sqlite3_bind_text64(stmt, idx, v.ptr, v.length, SQLITE_TRANSIENT, SQLITE_UTF8);
 			}
 			else static if (is(T == Blob))
 			{
 				res = sqlite3_bind_blob64(stmt, idx, v.ptr, v.length, SQLITE_TRANSIENT);
 			}
 			else
-			{
 				static assert(false);
-			}
 
 			res == SQLITE_OK || throwError(lastError);
 		}
 	}
 
-	auto lastId(sqlite3_stmt*)
-	{
-		return sqlite3_last_insert_rowid(_db);
-	}
-
-	auto affected(sqlite3_stmt*)
-	{
-		return sqlite3_changes(_db);
-	}
-
+	auto lastId(sqlite3_stmt * ) => sqlite3_last_insert_rowid(_db);
+	auto affected(sqlite3_stmt * ) => sqlite3_changes(_db);
 private:
 	void remove(sqlite3_stmt* stmt)
 	{
@@ -202,10 +186,7 @@ private:
 		return res == SQLITE_ROW;
 	}
 
-	auto lastError()
-	{
-		return sqlite3_errmsg(_db).fromStringz;
-	}
+	auto lastError() => sqlite3_errmsg(_db).fromStringz;
 
 	sqlite3* _db;
 	sqlite3_stmt*[string] _stmts;
