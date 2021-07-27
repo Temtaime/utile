@@ -1,7 +1,7 @@
 module utile.binary.tests;
 import std, utile.misc, utile.binary, utile.logger, utile.binary.helpers;
 
-void ensureResult(T)(ref in T value, const(ubyte)[] data)
+void ensureResult(T)(in T value, const(ubyte)[] data)
 {
 	const res = value.serializeMem;
 	assert(res == data, res.to!string);
@@ -222,9 +222,7 @@ unittest
 		@(ToTheEnd, Skip!(a => a.that.rt)) byte[] q;
 	}
 
-	static assert(fieldsToProcess!Test == [
-			`y`, `u`, `s`, `c`, `d`, `e`, `r`, `rt`, `q`
-			]);
+	static assert(fieldsToProcess!Test == [`y`, `u`, `s`, `c`, `d`, `e`, `r`, `rt`, `q`]);
 
 	const(ubyte)[] data = [
 		12, 0, 0, 0, // y

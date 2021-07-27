@@ -1,15 +1,14 @@
 module utile.except;
 import std.conv, std.format, std.exception;
 
-bool throwError(string S, string File = __FILE__, uint Line = __LINE__, A...)(A args)
-		if (__traits(compiles, format!S(args)))
+bool throwError(string S, string File = __FILE__, uint Line = __LINE__, A...)(A args) if (__traits(compiles, args.format!S))
 {
-	return throwError(format!S(args), File, Line);
+	return throwError(args.format!S, File, Line);
 }
 
-bool throwError(string S, A...)(string file, uint line, A args) if (__traits(compiles, format!S(args)))
+bool throwError(string S, A...)(string file, uint line, A args) if (__traits(compiles, args.format!S))
 {
-	return throwError(format!S(args), file, line);
+	return throwError(args.format!S, file, line);
 }
 
 bool throwError(T)(T value, string file = __FILE__, uint line = __LINE__)

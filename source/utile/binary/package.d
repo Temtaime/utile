@@ -3,12 +3,12 @@ import std, std.typetuple, utile.misc, utile.except, utile.binary.helpers;
 
 public import utile.binary.attrs, utile.binary.streams;
 
-size_t writeLength(T)(ref in T value, string file = __FILE__, uint line = __LINE__)
+size_t writeLength(T)(in T value, string file = __FILE__, uint line = __LINE__)
 {
 	return Serializer!LengthCalcStream().write(value, true, file, line).stream.written;
 }
 
-void serializeFile(T)(string name, ref in T value, string file = __FILE__, uint line = __LINE__)
+void serializeFile(T)(string name, in T value, string file = __FILE__, uint line = __LINE__)
 {
 	scope mm = new MmFile(name, MmFile.Mode.readWriteNew, writeLength(value, file, line), null);
 
@@ -23,7 +23,7 @@ T deserializeFile(T)(string name, string file = __FILE__, uint line = __LINE__)
 		.read!T(true, file, line);
 }
 
-ubyte[] serializeMem(T)(ref in T value, string file = __FILE__, uint line = __LINE__)
+ubyte[] serializeMem(T)(in T value, string file = __FILE__, uint line = __LINE__)
 {
 	return Serializer!AppendStream().write(value, true, file, line).stream.data;
 }
@@ -52,7 +52,7 @@ struct Serializer(Stream)
 		return value;
 	}
 
-	ref write(T)(auto ref in T value, bool ensureNoSpaceLeft = true, string file = __FILE__, uint line = __LINE__)
+	ref write(T)(in T value, bool ensureNoSpaceLeft = true, string file = __FILE__, uint line = __LINE__)
 			if (is(T == struct))
 	{
 		auto s = SerializerImpl!(Stream, const(T))(&value, &stream, line, file);
