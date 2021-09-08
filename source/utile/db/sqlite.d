@@ -1,12 +1,14 @@
 module utile.db.sqlite;
-import std.conv, std.meta, std.array, std.string, std.traits, std.typecons, std.exception, std.algorithm,
-	etc.c.sqlite3, utile.db, utile.except, utile.misc;
+import std, etc.c.sqlite3, utile.except, utile.db;
 
 final class SQLite
 {
 	this(string name)
 	{
 		sqlite3_open(name.toStringz, &_db) == SQLITE_OK || throwError(lastError);
+
+		exec(`pragma temp_store = MEMORY;`);
+		exec(`pragma synchronous = NORMAL;`);
 	}
 
 	~this()
@@ -31,6 +33,20 @@ final class SQLite
 
 	mixin DbBase;
 private:
+	void exec(string sql)
+	{
+		char* msg;
+		sqlite3_exec(_db, sql.toStringz, null, null, &msg);
+
+		if (msg)
+		{
+			auto s = msg.fromStringz.idup;
+			sqlite3_free(msg);
+
+			throwError!`error executing query: %s`(s);
+		}
+	}
+
 	void process(sqlite3_stmt* stmt)
 	{
 		execute(stmt);
@@ -85,7 +101,7 @@ private:
 
 				foreach (i, ref v; r)
 				{
-					alias T = A[i];
+					alias T = r.Types[i];
 
 					static if (isFloatingPoint!T)
 					{
@@ -136,6 +152,12 @@ private:
 	}
 
 	void bind(A...)(sqlite3_stmt* stmt, A args)
+	in
+	{
+		auto cnt = sqlite3_bind_parameter_count(stmt);
+		A.length == cnt || throwError!`expected %u parameters to bind, but %u provided`(cnt, A.length);
+	}
+	do
 	{
 		foreach (uint i, v; args)
 		{

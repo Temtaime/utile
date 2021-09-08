@@ -45,17 +45,16 @@ struct Serializer(Stream)
 	{
 		T value;
 
-		auto s = SerializerImpl!(Stream, T)(&value, &stream, line, file);
+		auto s = SerializerImpl!(Stream, T)(&value, &stream, file, line);
 		s.process!false(value, value);
 
 		ensureFullyParsed && stream.length && throwError!`%u bytes were not parsed`(file, line, stream.length);
 		return value;
 	}
 
-	ref write(T)(in T value, bool ensureNoSpaceLeft = true, string file = __FILE__, uint line = __LINE__)
-			if (is(T == struct))
+	ref write(T)(in T value, bool ensureNoSpaceLeft = true, string file = __FILE__, uint line = __LINE__) if (is(T == struct))
 	{
-		auto s = SerializerImpl!(Stream, const(T))(&value, &stream, line, file);
+		auto s = SerializerImpl!(Stream, const(T))(&value, &stream, file, line);
 		s.process!true(value, value);
 
 		ensureNoSpaceLeft && stream.length && throwError!`%u bytes were not occupied`(file, line, stream.length);
@@ -80,55 +79,34 @@ struct SerializerImpl(Stream, I)
 	I* input;
 	Stream* stream;
 
-	uint line;
 	string file;
+	uint line;
 private:
 	pragma(inline, false)
 	{
-		@property variableName()
-		{
-			return _names[0 .. _depth].join('.');
-		}
+		@property variableName() const => _names[0 .. _depth].join('.');
 
-		bool commonError(string msg)
-		{
-			return throwError!"can't %s %s variable"(file, line, msg, variableName);
-		}
+		bool commonError(string msg) => throwError!"can't %s %s variable"(file, line, msg, variableName);
 
-		bool errorRead()
-		{
-			return commonError(`read`);
-		}
+		bool errorRead() => commonError(`read`);
+		bool errorWrite() => commonError(`write`);
 
-		bool errorWrite()
-		{
-			return commonError(`write`);
-		}
-
-		bool errorRSkip()
-		{
-			return commonError(`skip when reading`);
-		}
-
-		bool errorWSkip()
-		{
-			return commonError(`skip when writing`);
-		}
+		bool errorRSkip() => commonError(`skip when reading`);
+		bool errorWSkip() => commonError(`skip when writing`);
 
 		bool errorCheck(T)(const(T)* tmp, const(T)* p)
 		{
 			return throwError!"variable %s mismatch(%s when %s expected)"(file, line, variableName, *tmp, *p);
 		}
 
-		bool errorValid(T)(T* p)
-		{
-			return throwError!"variable %s has invalid value %s"(file, line, variableName, *p);
-		}
+		bool errorValid(T)(T * p) => throwError!"variable %s has invalid value %s"(file, line, variableName,  * p);
 	}
 
 	pragma(inline, true) void doProcess(bool Writing, T, P)(ref T data, ref P parent)
 	{
 		_depth++;
+		scope (exit)
+			_depth--;
 
 		enum Reading = !Writing;
 		auto evaluateData = tuple!(`input`, `parent`, `that`, `stream`)(input, &parent, &data, stream);
@@ -434,11 +412,11 @@ private:
 				alias validate = templateParamFor!(Validate, attrs);
 
 				static if (!is(validate == void))
+				{
 					validate(evaluateData) || errorValid(p);
+				}
 			}
 		}
-
-		_depth--;
 	}
 
 	template templateParamFor(alias C, A...)
@@ -448,7 +426,9 @@ private:
 			alias T = A[0];
 
 			static if (__traits(isSame, TemplateOf!T, C))
+			{
 				alias templateParamFor = TemplateArgsOf!T[0];
+			}
 			else
 				alias templateParamFor = templateParamFor!(C, A[1 .. $]);
 		}
