@@ -28,8 +28,11 @@ final class SQLite
 		}
 
 		auto rc = sqlite3_backup_step(bk, -1);
-		rc == SQLITE_DONE || throwError!`error backuping db: %s`(rc);
+		rc == SQLITE_DONE || throwError!`error backing up db: %s`(rc);
 	}
+
+	static Blob blobNull() => ( & _null)[0 .. 0];
+	static string textNull() => cast(string)blobNull;
 
 	mixin DbBase;
 private:
@@ -180,11 +183,29 @@ private:
 			}
 			else static if (is(T == string))
 			{
-				res = sqlite3_bind_text64(stmt, idx, v.ptr, v.length, SQLITE_TRANSIENT, SQLITE_UTF8);
+				const(char)* p;
+
+				if (cast(void*)v.ptr is &_null)
+				{
+					p = null;
+				}
+				else
+					p = v.length ? v.ptr : cast(const(char)*)&_null;
+
+				res = sqlite3_bind_text64(stmt, idx, p, v.length, SQLITE_TRANSIENT, SQLITE_UTF8);
 			}
 			else static if (is(T == Blob))
 			{
-				res = sqlite3_bind_blob64(stmt, idx, v.ptr, v.length, SQLITE_TRANSIENT);
+				const(ubyte)* p;
+
+				if (v.ptr is &_null)
+				{
+					p = null;
+				}
+				else
+					p = v.length ? v.ptr : &_null;
+
+				res = sqlite3_bind_blob64(stmt, idx, p, v.length, SQLITE_TRANSIENT);
 			}
 			else
 				static assert(false);
@@ -212,4 +233,6 @@ private:
 
 	sqlite3* _db;
 	sqlite3_stmt*[string] _stmts;
+
+	immutable __gshared ubyte _null;
 }

@@ -1,5 +1,5 @@
 module utile.misc;
-import std.traits;
+import std;
 
 mixin template publicProperty(T, string Name, string Value = null)
 {
@@ -21,4 +21,14 @@ auto as(T, E)(ref E data) if (!isDynamicArray!E)
 auto toByte(T)(auto ref T data)
 {
 	return data.as!ubyte;
+}
+
+string randomId(uint len = 16)
+{
+	return len.iota.map!(_ => fullHexDigits.byCodeUnit.choice).array;
+}
+
+void removeUnstable(T, A...)(ref T[] arr, A indices)
+{
+	arr = arr.remove!(SwapStrategy.unstable)(indices);
 }
