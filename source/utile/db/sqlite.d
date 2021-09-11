@@ -34,12 +34,16 @@ final class SQLite
 	static Blob blobNull() => ( & _null)[0 .. 0];
 	static string textNull() => cast(string)blobNull;
 
+	void commit() => exec(`commit;`);
+	void rollback() => exec(`rollback;`);
+	void beginTransaction() => exec(`begin transaction;`);
+
 	mixin DbBase;
 private:
-	void exec(string sql)
+	void exec(const(char)* sql)
 	{
 		char* msg;
-		sqlite3_exec(_db, sql.toStringz, null, null, &msg);
+		sqlite3_exec(_db, sql, null, null, &msg);
 
 		if (msg)
 		{
