@@ -106,6 +106,13 @@ private:
 			{
 				Tuple!A r;
 
+				{
+					auto N = r.Types.length;
+					auto cnt = sqlite3_column_count(stmt);
+
+					cnt == N || throwError!`expected %u columns, but query returned %u`(N, cnt);
+				}
+
 				foreach (i, ref v; r)
 				{
 					alias T = r.Types[i];
@@ -159,13 +166,12 @@ private:
 	}
 
 	void bind(A...)(sqlite3_stmt* stmt, A args)
-	in
 	{
-		auto cnt = sqlite3_bind_parameter_count(stmt);
-		A.length == cnt || throwError!`expected %u parameters to bind, but %u provided`(cnt, A.length);
-	}
-	do
-	{
+		{
+			auto cnt = sqlite3_bind_parameter_count(stmt);
+			A.length == cnt || throwError!`expected %u parameters to bind, but %u provided`(cnt, A.length);
+		}
+
 		foreach (uint i, v; args)
 		{
 			int res;
