@@ -1,45 +1,60 @@
 module utile.db.sqlite;
-import std, etc.c.sqlite3, utile.except, utile.db;
+import std, core.sync.mutex, core.sync.rwmutex, etc.c.sqlite3, utile.except, utile.db, utile.misc;
 
 final class SQLite
 {
 	this(string name)
 	{
-		sqlite3_open(name.toStringz, &_db) == SQLITE_OK || throwError(lastError);
+		const(char)* p;
+		auto flags = SQLITE_OPEN_FULLMUTEX | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
+
+		if (name.empty)
+		{
+			flags |= SQLITE_OPEN_MEMORY;
+		}
+		else
+			p = name.toStringz;
+
+		auto code = sqlite3_open_v2(p, &_db, flags, null);
+		code == SQLITE_OK || error(code);
 
 		exec(`pragma temp_store = MEMORY;`);
 		exec(`pragma synchronous = NORMAL;`);
+
+		_mutex = new ReadWriteMutex(ReadWriteMutex.Policy.PREFER_READERS);
 	}
 
 	~this()
 	{
-		_stmts.byValue.each!(a => remove(a));
+		_cache.byValue.each!(a => remove(a));
 		sqlite3_close(_db);
 	}
 
 	void backup(SQLite dest)
 	{
-		auto bk = sqlite3_backup_init(dest._db, `main`, _db, `main`);
-		bk || throwError(dest.lastError);
+		auto bk = sqlite3_backup_init(dest._db, MainDb, _db, MainDb);
+		bk || throwError(`cannot init backup`);
 
 		scope (exit)
 		{
 			sqlite3_backup_finish(bk);
 		}
 
-		auto rc = sqlite3_backup_step(bk, -1);
-		rc == SQLITE_DONE || throwError!`error backing up db: %s`(rc);
+		auto code = sqlite3_backup_step(bk, -1);
+		code == SQLITE_DONE || error(code);
 	}
 
 	static Blob blobNull() => ( & _null)[0 .. 0];
 	static string textNull() => cast(string)blobNull;
 
+	void begin() => exec(`begin;`);
 	void commit() => exec(`commit;`);
 	void rollback() => exec(`rollback;`);
-	void beginTransaction() => exec(`begin transaction;`);
 
 	mixin DbBase;
 private:
+	enum immutable(char)[4] MainDb = `main`;
+
 	void exec(const(char)* sql)
 	{
 		char* msg;
@@ -54,24 +69,22 @@ private:
 		}
 	}
 
-	void process(sqlite3_stmt* stmt)
+	void process(S* s)
 	{
-		execute(stmt);
-		sqlite3_reset(stmt);
+		execute(s.stmt);
+		reset(s);
 	}
 
-	auto process(A...)(sqlite3_stmt* stmt)
+	auto process(A...)(S* s)
 	{
 		auto self = this; // TODO: DMD BUG
+		auto stmt = s.stmt;
 
 		struct S
 		{
 			this(this) @disable;
 
-			~this()
-			{
-				sqlite3_reset(stmt);
-			}
+			~this() => self.reset(s);
 
 			const empty() => !_hasRow;
 
@@ -106,6 +119,7 @@ private:
 			{
 				Tuple!A r;
 
+				debug
 				{
 					auto N = r.Types.length;
 					auto cnt = sqlite3_column_count(stmt);
@@ -154,19 +168,43 @@ private:
 
 	auto prepare(string sql)
 	{
-		auto stmt = _stmts.get(sql, null);
+		S* s;
 
-		if (!stmt)
+		synchronized (_mutex.reader)
 		{
-			sqlite3_prepare_v2(_db, sql.toStringz, cast(int)sql.length, &stmt, null) == SQLITE_OK || throwError(lastError);
-			_stmts[sql] = stmt;
+			s = _cache.get(sql, null);
 		}
 
-		return stmt;
+		if (s)
+		{
+			s.mutex.lock;
+			return s;
+		}
+
+		synchronized (_mutex.writer)
+		{
+			s = _cache.get(sql, null);
+
+			if (s is null)
+			{
+				sqlite3_stmt* stmt;
+
+				auto code = sqlite3_prepare_v2(_db, sql.toStringz, cast(uint)sql.length, &stmt, null); 
+				code == SQLITE_OK || error(code);
+
+				s = _cache[sql] = new S(new Mutex, stmt);
+			}
+
+			s.mutex.lock;
+			return s;
+		}
 	}
 
-	void bind(A...)(sqlite3_stmt* stmt, A args)
+	void bind(A...)(S* s, A args)
 	{
+		auto stmt = s.stmt;
+
+		debug
 		{
 			auto cnt = sqlite3_bind_parameter_count(stmt);
 			A.length == cnt || throwError!`expected %u parameters to bind, but %u provided`(cnt, A.length);
@@ -174,22 +212,22 @@ private:
 
 		foreach (uint i, v; args)
 		{
-			int res;
-			auto idx = i + 1;
-
 			alias T = Unqual!(typeof(v));
+
+			uint code;
+			uint idx = i + 1;
 
 			static if (is(T == typeof(null)))
 			{
-				res = sqlite3_bind_null(stmt, idx);
+				code = sqlite3_bind_null(stmt, idx);
 			}
 			else static if (isFloatingPoint!T)
 			{
-				res = sqlite3_bind_double(stmt, idx, v);
+				code = sqlite3_bind_double(stmt, idx, v);
 			}
 			else static if (isIntegral!T)
 			{
-				res = sqlite3_bind_int64(stmt, idx, v);
+				code = sqlite3_bind_int64(stmt, idx, v);
 			}
 			else static if (is(T == string))
 			{
@@ -202,7 +240,7 @@ private:
 				else
 					p = v.length ? v.ptr : cast(const(char)*)&_null;
 
-				res = sqlite3_bind_text64(stmt, idx, p, v.length, SQLITE_TRANSIENT, SQLITE_UTF8);
+				code = sqlite3_bind_text64(stmt, idx, p, v.length, SQLITE_TRANSIENT, SQLITE_UTF8);
 			}
 			else static if (is(T == Blob))
 			{
@@ -215,34 +253,52 @@ private:
 				else
 					p = v.length ? v.ptr : &_null;
 
-				res = sqlite3_bind_blob64(stmt, idx, p, v.length, SQLITE_TRANSIENT);
+				code = sqlite3_bind_blob64(stmt, idx, p, v.length, SQLITE_TRANSIENT);
 			}
 			else
 				static assert(false);
 
-			res == SQLITE_OK || throwError(lastError);
+			code == SQLITE_OK || error(code);
 		}
 	}
 
-	auto lastId(sqlite3_stmt * ) => sqlite3_last_insert_rowid(_db);
-	auto affected(sqlite3_stmt * ) => sqlite3_changes(_db);
+	auto lastId(S * ) => sqlite3_last_insert_rowid(_db);
+	auto affected(S * ) => sqlite3_changes(_db);
 private:
-	void remove(sqlite3_stmt* stmt)
+	void reset(S* s)
 	{
-		sqlite3_finalize(stmt);
+		sqlite3_reset(s.stmt);
+		s.mutex.unlock;
+	}
+
+	void remove(S* s)
+	{
+		s.mutex.destroy;
+		sqlite3_finalize(s.stmt);
 	}
 
 	bool execute(sqlite3_stmt* stmt)
 	{
 		auto res = sqlite3_step(stmt);
-		res == SQLITE_ROW || res == SQLITE_DONE || throwError(lastError);
+		res == SQLITE_ROW || res == SQLITE_DONE || error(res);
 		return res == SQLITE_ROW;
 	}
 
-	auto lastError() => sqlite3_errmsg(_db).fromStringz;
+	bool error(uint code)
+	{
+		return throwError(sqlite3_errstr(code).fromStringz.assumeUnique);
+	}
+
+	struct S
+	{
+		Mutex mutex;
+		sqlite3_stmt* stmt;
+	}
 
 	sqlite3* _db;
-	sqlite3_stmt*[string] _stmts;
+
+	S*[string] _cache;
+	ReadWriteMutex _mutex;
 
 	immutable __gshared ubyte _null;
 }

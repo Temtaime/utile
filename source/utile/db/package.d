@@ -8,7 +8,7 @@ alias Blob = const(ubyte)[];
 unittest
 {
 	{
-		scope db = new SQLite(`:memory:`);
+		scope db = new SQLite(null);
 
 		{
 			Blob arr = [1, 2, 3];
