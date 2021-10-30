@@ -6,7 +6,7 @@ final class SQLite
 	this(string name)
 	{
 		const(char)* p;
-		auto flags = SQLITE_OPEN_FULLMUTEX | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
+		auto flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
 
 		if (name.empty)
 		{
@@ -15,13 +15,10 @@ final class SQLite
 		else
 			p = name.toStringz;
 
-		auto code = sqlite3_open_v2(p, &_db, flags, null);
-		code == SQLITE_OK || error(code);
+		sqlite3_open_v2(p, &_db, flags, null) == SQLITE_OK || error;
 
 		exec(`pragma temp_store = MEMORY;`);
 		exec(`pragma synchronous = NORMAL;`);
-
-		_mutex = new ReadWriteMutex(ReadWriteMutex.Policy.PREFER_READERS);
 	}
 
 	~this()
@@ -40,8 +37,7 @@ final class SQLite
 			sqlite3_backup_finish(bk);
 		}
 
-		auto code = sqlite3_backup_step(bk, -1);
-		code == SQLITE_DONE || error(code);
+		sqlite3_backup_step(bk, -1) == SQLITE_DONE || error;
 	}
 
 	static Blob blobNull() => ( & _null)[0 .. 0];
@@ -69,22 +65,21 @@ private:
 		}
 	}
 
-	void process(S* s)
+	void process(sqlite3_stmt* stmt)
 	{
-		execute(s.stmt);
-		reset(s);
+		execute(stmt);
+		reset(stmt);
 	}
 
-	auto process(A...)(S* s)
+	auto process(A...)(sqlite3_stmt* stmt)
 	{
 		auto self = this; // TODO: DMD BUG
-		auto stmt = s.stmt;
 
 		struct S
 		{
 			this(this) @disable;
 
-			~this() => self.reset(s);
+			~this() => self.reset(stmt);
 
 			const empty() => !_hasRow;
 
@@ -152,7 +147,9 @@ private:
 				}
 
 				static if (A.length > 1)
+				{
 					return r;
+				}
 				else
 					return r[0];
 			}
@@ -168,42 +165,19 @@ private:
 
 	auto prepare(string sql)
 	{
-		S* s;
-
-		synchronized (_mutex.reader)
+		if (auto stmt = _cache.get(sql, null))
 		{
-			s = _cache.get(sql, null);
+			return stmt;
 		}
 
-		if (s)
-		{
-			s.mutex.lock;
-			return s;
-		}
+		sqlite3_stmt* stmt;
+		sqlite3_prepare_v2(_db, sql.toStringz, cast(uint)sql.length, &stmt, null) == SQLITE_OK || error;
 
-		synchronized (_mutex.writer)
-		{
-			s = _cache.get(sql, null);
-
-			if (s is null)
-			{
-				sqlite3_stmt* stmt;
-
-				auto code = sqlite3_prepare_v2(_db, sql.toStringz, cast(uint)sql.length, &stmt, null); 
-				code == SQLITE_OK || error(code);
-
-				s = _cache[sql] = new S(new Mutex, stmt);
-			}
-
-			s.mutex.lock;
-			return s;
-		}
+		return _cache[sql] = stmt;
 	}
 
-	void bind(A...)(S* s, A args)
+	void bind(A...)(sqlite3_stmt* stmt, A args)
 	{
-		auto stmt = s.stmt;
-
 		debug
 		{
 			auto cnt = sqlite3_bind_parameter_count(stmt);
@@ -258,47 +232,37 @@ private:
 			else
 				static assert(false);
 
-			code == SQLITE_OK || error(code);
+			code == SQLITE_OK || error;
 		}
 	}
 
-	auto lastId(S * ) => sqlite3_last_insert_rowid(_db);
-	auto affected(S * ) => sqlite3_changes(_db);
+	auto lastId(sqlite3_stmt * ) => sqlite3_last_insert_rowid(_db);
+	auto affected(sqlite3_stmt * ) => sqlite3_changes(_db);
 private:
-	void reset(S* s)
+	void reset(sqlite3_stmt* stmt)
 	{
-		sqlite3_reset(s.stmt);
-		s.mutex.unlock;
+		sqlite3_reset(stmt);
 	}
 
-	void remove(S* s)
+	void remove(sqlite3_stmt* stmt)
 	{
-		s.mutex.destroy;
-		sqlite3_finalize(s.stmt);
+		sqlite3_finalize(stmt);
 	}
 
 	bool execute(sqlite3_stmt* stmt)
 	{
 		auto res = sqlite3_step(stmt);
-		res == SQLITE_ROW || res == SQLITE_DONE || error(res);
+		res == SQLITE_ROW || res == SQLITE_DONE || error;
 		return res == SQLITE_ROW;
 	}
 
-	bool error(uint code)
+	bool error()
 	{
-		return throwError(sqlite3_errstr(code).fromStringz.assumeUnique);
-	}
-
-	struct S
-	{
-		Mutex mutex;
-		sqlite3_stmt* stmt;
+		return throwError(sqlite3_errmsg(_db).fromStringz.idup);
 	}
 
 	sqlite3* _db;
-
-	S*[string] _cache;
-	ReadWriteMutex _mutex;
+	sqlite3_stmt*[string] _cache;
 
 	immutable __gshared ubyte _null;
 }
