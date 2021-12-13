@@ -17,6 +17,7 @@ final class SQLite
 
 		sqlite3_open_v2(p, &_db, flags, null) == SQLITE_OK || error;
 
+		exec(`pragma foreign_keys = ON;`);
 		exec(`pragma temp_store = MEMORY;`);
 		exec(`pragma synchronous = NORMAL;`);
 	}
@@ -40,11 +41,8 @@ final class SQLite
 		sqlite3_backup_step(bk, -1) == SQLITE_DONE || error;
 	}
 
-	static Blob blobNull() => ( & _null)[0 .. 0];
-	static string textNull() => cast(string)blobNull;
-
 	void begin() => exec(`begin;`);
-	void commit() => exec(`commit;`);
+	void end() => exec(`end;`);
 	void rollback() => exec(`rollback;`);
 
 	mixin DbBase;
@@ -207,12 +205,12 @@ private:
 			{
 				const(char)* p;
 
-				if (cast(void*)v.ptr is &_null)
+				if (v is DB_NULL_STRING)
 				{
 					p = null;
 				}
 				else
-					p = v.length ? v.ptr : cast(const(char)*)&_null;
+					p = v.length ? v.ptr : DB_NULL_STRING.ptr;
 
 				code = sqlite3_bind_text64(stmt, idx, p, v.length, SQLITE_TRANSIENT, SQLITE_UTF8);
 			}
@@ -220,12 +218,12 @@ private:
 			{
 				const(ubyte)* p;
 
-				if (v.ptr is &_null)
+				if (v is DB_NULL_BLOB)
 				{
 					p = null;
 				}
 				else
-					p = v.length ? v.ptr : &_null;
+					p = v.length ? v.ptr : DB_NULL_BLOB.ptr;
 
 				code = sqlite3_bind_blob64(stmt, idx, p, v.length, SQLITE_TRANSIENT);
 			}
@@ -263,6 +261,4 @@ private:
 
 	sqlite3* _db;
 	sqlite3_stmt*[string] _cache;
-
-	immutable __gshared ubyte _null;
 }

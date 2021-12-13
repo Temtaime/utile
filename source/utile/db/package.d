@@ -5,6 +5,18 @@ public import utile.db.mysql, utile.db.sqlite;
 
 alias Blob = const(ubyte)[];
 
+string DB_NULL_STRING()
+{
+	__gshared immutable char z;
+	return (&z)[0 .. 1];
+}
+
+Blob DB_NULL_BLOB()
+{
+	__gshared immutable ubyte z;
+	return (&z)[0 .. 1];
+}
+
 unittest
 {
 	{
@@ -52,11 +64,21 @@ mixin template DbBase()
 			bind(stmt, args);
 
 			static if (T.length)
+			{
 				return process!T(stmt);
+			}
 			else
 			{
 				process(stmt);
-				return tuple!(`affected`, `lastId`)(affected(stmt), lastId(stmt));
+				auto that = this;
+
+				struct S
+				{
+					auto id() => that.lastId(stmt);
+					auto affected() => that.affected(stmt);
+				}
+
+				return S();
 			}
 		}
 	}
