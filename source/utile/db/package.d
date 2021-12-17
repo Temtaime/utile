@@ -5,18 +5,6 @@ public import utile.db.mysql, utile.db.sqlite;
 
 alias Blob = const(ubyte)[];
 
-string DB_NULL_STRING()
-{
-	__gshared immutable char z;
-	return (&z)[0 .. 1];
-}
-
-Blob DB_NULL_BLOB()
-{
-	__gshared immutable ubyte z;
-	return (&z)[0 .. 1];
-}
-
 unittest
 {
 	{
@@ -36,10 +24,14 @@ unittest
 			assert(res.equal(tuple(123, `hello`).only));
 		}
 
-		{
-			auto res = db.queryOne!uint(`select ?;`, 123);
+		assert(db.queryOne!uint(`select ? is null;`, string.init) == 0);
+		assert(db.queryOne!uint(`select ? is null;`, cast(string*)null) == 1);
 
-			assert(res == 123);
+		{
+			string s = `hello`;
+
+			assert(db.queryOne!string(`select ?;`, s) == s);
+			assert(db.queryOne!string(`select ?;`, &s) == s);
 		}
 	}
 
@@ -70,15 +62,15 @@ mixin template DbBase()
 			else
 			{
 				process(stmt);
-				auto that = this;
+				auto self = this;
 
 				struct S
 				{
-					auto id() => that.lastId(stmt);
-					auto affected() => that.affected(stmt);
+					auto id() => self.lastId(stmt);
+					auto affected() => self.affected(stmt);
 				}
 
-				return S();
+				return S.init;
 			}
 		}
 	}

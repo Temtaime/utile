@@ -59,7 +59,7 @@ private:
 			auto s = msg.fromStringz.idup;
 			sqlite3_free(msg);
 
-			throwError!`error executing query: %s`(s);
+			throwError!`%s - %s`(sql.fromStringz, s);
 		}
 	}
 
@@ -138,7 +138,8 @@ private:
 					}
 					else static if (is(T == Blob))
 					{
-						v = cast(Blob)sqlite3_column_blob(stmt, i)[0 .. dataLen(i)].dup;
+						v = cast(Blob)sqlite3_column_blob(stmt, i)[0 .. dataLen(i)];
+						v = v.dup;
 					}
 					else
 						static assert(false);
@@ -169,7 +170,7 @@ private:
 		}
 
 		sqlite3_stmt* stmt;
-		sqlite3_prepare_v2(_db, sql.toStringz, cast(uint)sql.length, &stmt, null) == SQLITE_OK || error;
+		sqlite3_prepare_v2(_db, sql.toStringz, cast(uint)sql.length, &stmt, null) == SQLITE_OK || error(sql);
 
 		return _cache[sql] = stmt;
 	}
@@ -184,59 +185,46 @@ private:
 
 		foreach (uint i, v; args)
 		{
-			alias T = Unqual!(typeof(v));
-
-			uint code;
-			uint idx = i + 1;
-
-			static if (is(T == typeof(null)))
-			{
-				code = sqlite3_bind_null(stmt, idx);
-			}
-			else static if (isFloatingPoint!T)
-			{
-				code = sqlite3_bind_double(stmt, idx, v);
-			}
-			else static if (isIntegral!T)
-			{
-				code = sqlite3_bind_int64(stmt, idx, v);
-			}
-			else static if (is(T == string))
-			{
-				const(char)* p;
-
-				if (v is DB_NULL_STRING)
-				{
-					p = null;
-				}
-				else
-					p = v.length ? v.ptr : DB_NULL_STRING.ptr;
-
-				code = sqlite3_bind_text64(stmt, idx, p, v.length, SQLITE_TRANSIENT, SQLITE_UTF8);
-			}
-			else static if (is(T == Blob))
-			{
-				const(ubyte)* p;
-
-				if (v is DB_NULL_BLOB)
-				{
-					p = null;
-				}
-				else
-					p = v.length ? v.ptr : DB_NULL_BLOB.ptr;
-
-				code = sqlite3_bind_blob64(stmt, idx, p, v.length, SQLITE_TRANSIENT);
-			}
-			else
-				static assert(false);
-
-			code == SQLITE_OK || error;
+			doBind(stmt, i + 1, v) == SQLITE_OK || error(stmt);
 		}
 	}
 
 	auto lastId(sqlite3_stmt * ) => sqlite3_last_insert_rowid(_db);
 	auto affected(sqlite3_stmt * ) => sqlite3_changes(_db);
 private:
+	uint doBind(T)(sqlite3_stmt* stmt, uint idx, const T v)
+	{
+		static if (is(T == U*, U) || is(T == typeof(null)))
+		{
+			if (v)
+			{
+				return doBind(stmt, idx, *v);
+			}
+			else
+				return sqlite3_bind_null(stmt, idx);
+		}
+		else static if (isFloatingPoint!T)
+		{
+			return sqlite3_bind_double(stmt, idx, v);
+		}
+		else static if (isIntegral!T)
+		{
+			return sqlite3_bind_int64(stmt, idx, v);
+		}
+		else static if (is(T == string))
+		{
+			char z;
+			return sqlite3_bind_text(stmt, idx, v.ptr ? v.ptr : &z, cast(uint)v.length, SQLITE_TRANSIENT);
+		}
+		else static if (is(T == Blob))
+		{
+			ubyte z;
+			return sqlite3_bind_blob64(stmt, idx, v.ptr ? v.ptr : &z, v.length, SQLITE_TRANSIENT);
+		}
+		else
+			static assert(false, `unsupported bind type`);
+	}
+
 	void reset(sqlite3_stmt* stmt)
 	{
 		sqlite3_reset(stmt);
@@ -250,13 +238,19 @@ private:
 	bool execute(sqlite3_stmt* stmt)
 	{
 		auto res = sqlite3_step(stmt);
-		res == SQLITE_ROW || res == SQLITE_DONE || error;
+		res == SQLITE_ROW || res == SQLITE_DONE || error(stmt);
 		return res == SQLITE_ROW;
 	}
 
-	bool error()
+	noreturn error(sqlite3_stmt * stmt) => error(sqlite3_sql(stmt).fromStringz.idup);
+
+	noreturn error(string sql = null)
 	{
-		return throwError(sqlite3_errmsg(_db).fromStringz.idup);
+		if (sql)
+			sql ~= ` - `;
+		sql ~= sqlite3_errmsg(_db).fromStringz.idup;
+
+		return throwError(sql);
 	}
 
 	sqlite3* _db;
