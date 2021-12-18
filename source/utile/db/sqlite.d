@@ -17,9 +17,9 @@ final class SQLite
 
 		sqlite3_open_v2(p, &_db, flags, null) == SQLITE_OK || error;
 
-		exec(`pragma foreign_keys = ON;`);
-		exec(`pragma temp_store = MEMORY;`);
-		exec(`pragma synchronous = NORMAL;`);
+		query(`pragma foreign_keys = ON;`);
+		query(`pragma temp_store = MEMORY;`);
+		query(`pragma synchronous = NORMAL;`);
 	}
 
 	~this()
@@ -41,27 +41,13 @@ final class SQLite
 		sqlite3_backup_step(bk, -1) == SQLITE_DONE || error;
 	}
 
-	void begin() => exec(`begin;`);
-	void end() => exec(`end;`);
-	void rollback() => exec(`rollback;`);
+	void begin() => cast(void)query(`begin;`);
+	void end() => cast(void)query(`end;`);
+	void rollback() => cast(void)query(`rollback;`);
 
 	mixin DbBase;
 private:
 	enum immutable(char)[4] MainDb = `main`;
-
-	void exec(const(char)* sql)
-	{
-		char* msg;
-		sqlite3_exec(_db, sql, null, null, &msg);
-
-		if (msg)
-		{
-			auto s = msg.fromStringz.idup;
-			sqlite3_free(msg);
-
-			throwError!`%s - %s`(sql.fromStringz, s);
-		}
-	}
 
 	void process(sqlite3_stmt* stmt)
 	{

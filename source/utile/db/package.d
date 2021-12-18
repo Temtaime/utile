@@ -70,7 +70,7 @@ mixin template DbBase()
 					auto affected() => self.affected(stmt);
 				}
 
-				return S.init;
+				return S();
 			}
 		}
 	}
