@@ -1,5 +1,5 @@
 module utile.logger;
-import std.conv, std.range, std.string, std.algorithm, core.stdc.stdio, utile.console;
+import std.conv, std.range, std.string, std.algorithm, core.stdc.stdio, utile_console;
 
 abstract class Logger
 {
@@ -42,7 +42,7 @@ final class ConsoleLogger : Logger
 protected:
 	override void write(int color, string s)
 	{
-		cc_fprintf(color, stdout, "%.*s", s.length, s.ptr);
+		print_stdout(color, s.length, s.ptr);
 	}
 }
 

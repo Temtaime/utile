@@ -1,6 +1,5 @@
 module utile.miniz;
-import std.conv, std.file, std.array, std.stdio, std.string, std.algorithm,
-	std.exception, utile.miniz.binding;
+import std, utile_miniz;
 
 final class Zip
 {
@@ -12,8 +11,12 @@ final class Zip
 		{
 			assert(writeable, `cannot create in readonly mode`);
 
-			mz_zip_writer_init_file_v2(&_zip, name.toStringz, 0,
-					MZ_ZIP_FLAG_WRITE_ZIP64 | MZ_ZIP_FLAG_WRITE_ALLOW_READING);
+			mz_zip_writer_init_file_v2(
+				&_zip,
+				name.toStringz,
+				0,
+				MZ_ZIP_FLAG_WRITE_ZIP64 | MZ_ZIP_FLAG_WRITE_ALLOW_READING
+			);
 		}
 		else
 		{
