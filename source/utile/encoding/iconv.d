@@ -1,8 +1,11 @@
 module utile.encoding.iconv;
-
 import std.conv, std.string, std.encoding, core.stdc.errno, utile.except;
 
-version (linux)  : auto iconv(string s, string from, string to)
+version (linux):
+
+import utile_iconv;
+
+string iconv(string s, string from, string to)
 {
 	auto q = to ~ `//IGNORE//TRANSLIT`;
 	auto iv = iconv_open(q.toStringz, from.toStringz);
@@ -33,10 +36,3 @@ version (linux)  : auto iconv(string s, string from, string to)
 
 	return res;
 }
-
-extern (C):
-
-void* iconv_open(in char*, in char*);
-size_t iconv(void*, char**, size_t*, char**, size_t*);
-
-int iconv_close(void*);
