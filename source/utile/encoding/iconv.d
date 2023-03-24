@@ -5,7 +5,7 @@ version (linux):
 
 import utile_iconv;
 
-string iconv(string s, string from, string to)
+string convert(string s, string from, string to)
 {
 	auto q = to ~ `//IGNORE//TRANSLIT`;
 	auto iv = iconv_open(q.toStringz, from.toStringz);
