@@ -7,8 +7,8 @@ import utile_iconv;
 
 string convert(string s, string from, string to)
 {
-	auto q = to ~ `//IGNORE//TRANSLIT`;
-	auto iv = iconv_open(q.toStringz, from.toStringz);
+	auto query = to ~ `//IGNORE//TRANSLIT`;
+	auto iv = iconv_open(query.toStringz, from.toStringz);
 
 	cast(ptrdiff_t)iv != -1 || throwError!`can't convert from %s to %s`(from, to);
 

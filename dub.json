@@ -5,10 +5,6 @@
 		"Temtaime"
 	],
 	"description": "Useful things for D",
-	"dflags": [
-		"-preview=in",
-		"-preview=shortenedMethods"
-	],
 	"libs-windows-x86": [
 		"$PACKAGE_DIR/bin/utile_x86"
 	],
@@ -19,6 +15,6 @@
 		"$PACKAGE_DIR/bin/libutile.a"
 	],
 	"sourceFiles": [
-		"$PACKAGE_DIR/utile_console.c"
+		"$PACKAGE_DIR/source/utile_console.c"
 	]
 }

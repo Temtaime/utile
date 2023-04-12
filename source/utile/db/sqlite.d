@@ -233,10 +233,11 @@ private:
 	noreturn error(string sql = null)
 	{
 		if (sql)
+		{
 			sql ~= ` - `;
-		sql ~= sqlite3_errmsg(_db).fromStringz.idup;
+		}
 
-		return throwError(sql);
+		return throwError(sql ~ sqlite3_errmsg(_db).fromStringz.idup);
 	}
 
 	sqlite3* _db;

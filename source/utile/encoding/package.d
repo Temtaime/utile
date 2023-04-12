@@ -1,8 +1,5 @@
 module utile.encoding;
-
-import std.conv, std.string, std.encoding, std.exception, std.windows.charset,
-
-	core.stdc.errno, utile.except, utile.encoding.iconv;
+import std, std.windows.charset, core.stdc.errno, utile.except, utile.encoding.iconv;
 
 static immutable string[ushort] encodingsTable;
 
@@ -73,7 +70,7 @@ auto decode(string s, ushort cp)
 {
 	version (linux)
 	{
-		s = iconv(s, encodingsTable[cp], `UTF-8`);
+		s = convert(s, encodingsTable[cp], `UTF-8`);
 	}
 	else
 	{
@@ -90,7 +87,7 @@ auto encode(string s, ushort cp)
 
 	version (linux)
 	{
-		return iconv(s, `UTF-8`, encodingsTable[cp]);
+		return convert(s, `UTF-8`, encodingsTable[cp]);
 	}
 	else
 	{

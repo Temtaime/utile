@@ -1,5 +1,5 @@
 #define _NO_CRT_STDIO_INLINE
-#include "lib/console-colors.h"
+#include "../lib/console-colors.h"
 
 void print_stdout(int color, size_t len, const char* s)
 {

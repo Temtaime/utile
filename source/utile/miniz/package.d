@@ -1,16 +1,21 @@
 module utile.miniz;
-import std, utile_miniz;
+import std, utile.except, utile_miniz;
 
 final class Zip
 {
-	this(string name, bool writeable = true, bool create = false)
+	enum
+	{
+		ro,
+		rw,
+		create
+	}
+
+	this(string name, typeof(ro) flags)
 	{
 		auto s = name.toStringz;
 
-		if (create)
+		if (flags == create)
 		{
-			assert(writeable, `cannot create in readonly mode`);
-
 			mz_zip_writer_init_file_v2(
 				&_zip,
 				name.toStringz,
@@ -20,18 +25,16 @@ final class Zip
 		}
 		else
 		{
-			enforce(name.exists, `archive does not exist`);
+			name.exists || throwError(`archive does not exist`);
 
 			mz_zip_reader_init_file(&_zip, s, 0);
 
-			if (writeable)
+			if (flags == rw)
 			{
 				mz_zip_writer_init_from_reader(&_zip, s);
 			}
 			else
-			{
 				_ro = true;
-			}
 		}
 	}
 
@@ -48,17 +51,17 @@ final class Zip
 		}
 	}
 
-	auto get(string name)
+	ubyte[] get(string name)
 	{
 		auto idx = mz_zip_reader_locate_file(&_zip, name.toStringz, null, 0);
-		enforce(idx >= 0, lastError);
+		idx >= 0 || throwError(lastError);
 
-		mz_zip_archive_file_stat s;
-		enforce(mz_zip_reader_file_stat(&_zip, idx, &s), lastError);
+		mz_zip_archive_file_stat stat;
+		mz_zip_reader_file_stat(&_zip, idx, &stat) || throwError(lastError);
 
-		auto res = new ubyte[cast(size_t)s.m_uncomp_size];
+		auto res = new ubyte[cast(size_t)stat.m_uncomp_size];
 
-		enforce(mz_zip_reader_extract_to_mem(&_zip, idx, res.ptr, res.length, 0), lastError);
+		mz_zip_reader_extract_to_mem(&_zip, idx, res.ptr, res.length, 0) || throwError(lastError);
 		return res;
 	}
 
@@ -68,9 +71,12 @@ final class Zip
 	}
 
 private:
-	auto lastError()
+	string lastError()
 	{
-		return mz_zip_get_last_error(&_zip).mz_zip_get_error_string.fromStringz.assumeUnique;
+		return mz_zip_get_last_error(&_zip)
+			.mz_zip_get_error_string
+			.fromStringz
+			.assumeUnique;
 	}
 
 	bool _ro;
