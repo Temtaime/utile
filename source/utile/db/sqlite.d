@@ -41,9 +41,20 @@ final class SQLite
 		sqlite3_backup_step(bk, -1) == SQLITE_DONE || error;
 	}
 
-	void begin() => cast(void)query(`begin;`);
-	void end() => cast(void)query(`end;`);
-	void rollback() => cast(void)query(`rollback;`);
+	void begin()
+	{
+		query(`begin;`);
+	}
+
+	void end()
+	{
+		query(`end;`);
+	}
+
+	void rollback()
+	{
+		query(`rollback;`);
+	}
 
 	mixin DbBase;
 private:
@@ -175,8 +186,8 @@ private:
 		}
 	}
 
-	auto lastId(sqlite3_stmt * ) => sqlite3_last_insert_rowid(_db);
-	auto affected(sqlite3_stmt * ) => sqlite3_changes(_db);
+	auto lastId(sqlite3_stmt*) => sqlite3_last_insert_rowid(_db);
+	auto affected(sqlite3_stmt*) => sqlite3_changes(_db);
 private:
 	uint doBind(T)(sqlite3_stmt* stmt, uint idx, const T v)
 	{
@@ -228,7 +239,7 @@ private:
 		return res == SQLITE_ROW;
 	}
 
-	noreturn error(sqlite3_stmt * stmt) => error(sqlite3_sql(stmt).fromStringz.idup);
+	noreturn error(sqlite3_stmt* stmt) => error(sqlite3_sql(stmt).fromStringz.idup);
 
 	noreturn error(string sql = null)
 	{
