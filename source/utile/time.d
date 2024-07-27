@@ -1,9 +1,9 @@
 module utile.time;
-import core.time, utile;
+import core.time, std.datetime.stopwatch, utile;
 
 uint systemTick()
 {
-	return cast(uint)TickDuration.currSystemTick.msecs;
+	return cast(uint)(MonoTime.currTime.ticks * 1000 / MonoTime.ticksPerSecond);
 }
 
 struct TimeMeter
@@ -16,15 +16,15 @@ struct TimeMeter
 		}
 
 		_msg = msg;
-		_tick = systemTick;
+		_sw = StopWatch(AutoStart.yes);
 	}
 
 	~this()
 	{
-		logger.msg!`%s : %u ms`(_msg, systemTick - _tick);
+		logger.msg!`%s : %u ms`(_msg, _sw.peek.total!`msecs`);
 	}
 
 private:
 	string _msg;
-	uint _tick;
+	StopWatch _sw;
 }
