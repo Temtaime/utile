@@ -62,7 +62,7 @@ jobs:
 
       - working-directory: lib
         run: |
-          $arch = "${{ matrix.arch }}".Replace("86", "32")
+          $arch = "${{ matrix.arch }}".Replace("86", "32").Substring(1)
           clang -fuse-ld=llvm-lib -o utile_${{ matrix.arch }}.lib ${{ env.BUILD_CMD }} -m$arch
 
       - uses: actions/upload-artifact@v2
