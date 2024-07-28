@@ -1,7 +1,7 @@
 module utile.db.sqlite;
 import std, core.sync.mutex, core.sync.rwmutex, etc.c.sqlite3, utile.except, utile.db, utile.misc;
 
-final class SQLite
+final class SQLite : Db
 {
 	this(string name)
 	{
@@ -17,9 +17,9 @@ final class SQLite
 
 		sqlite3_open_v2(p, &_db, flags, null) == SQLITE_OK || error;
 
-		query(`pragma foreign_keys = ON;`);
-		query(`pragma temp_store = MEMORY;`);
-		query(`pragma synchronous = NORMAL;`);
+		query(`PRAGMA foreign_keys = ON;`);
+		query(`PRAGMA temp_store = MEMORY;`);
+		query(`PRAGMA synchronous = NORMAL;`);
 	}
 
 	~this()
@@ -41,22 +41,23 @@ final class SQLite
 		sqlite3_backup_step(bk, -1) == SQLITE_DONE || error;
 	}
 
-	void begin()
-	{
-		query(`begin;`);
-	}
-
-	void end()
-	{
-		query(`end;`);
-	}
-
-	void rollback()
-	{
-		query(`rollback;`);
-	}
-
 	mixin DbBase;
+protected:
+	override void begin()
+	{
+		query(`BEGIN;`);
+	}
+
+	override void end()
+	{
+		query(`END;`);
+	}
+
+	override void rollback()
+	{
+		query(`ROLLBACK;`);
+	}
+
 private:
 	enum immutable(char)[4] MainDb = `main`;
 

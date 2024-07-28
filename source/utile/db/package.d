@@ -5,8 +5,54 @@ public import utile.db.mysql, utile.db.sqlite;
 
 alias Blob = const(ubyte)[];
 
+abstract class Db
+{
+	abstract void begin();
+	abstract void end();
+	abstract void rollback();
+}
+
+struct Transaction
+{
+	this(Db db)
+	{
+		_db = db;
+		_db.begin;
+	}
+
+	~this()
+	{
+		if (_db)
+		{
+			_db.rollback;
+		}
+	}
+
+	void commit()
+	{
+		try
+		{
+			_db.end;
+		}
+		finally
+		{
+			_db = null;
+		}
+	}
+
+private:
+	Db _db;
+}
+
 unittest
 {
+	{
+		scope db = new SQLite(null);
+
+		auto t = Transaction(db);
+		t.commit;
+	}
+
 	{
 		scope db = new SQLite(null);
 
