@@ -30,14 +30,8 @@ struct Transaction
 
 	void commit()
 	{
-		try
-		{
-			_db.end;
-		}
-		finally
-		{
-			_db = null;
-		}
+		_db.end;
+		_db = null;
 	}
 
 private:

@@ -55,7 +55,13 @@ protected:
 
 	override void rollback()
 	{
-		query(`ROLLBACK;`);
+		try
+		{
+			query(`ROLLBACK;`);
+		}
+		catch (Exception ex)
+		{
+		}
 	}
 
 private:
