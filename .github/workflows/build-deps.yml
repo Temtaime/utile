@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 env:
-  BUILD_CMD: -w -fno-stack-protector -O3 -msse3 -DNDEBUG -DMINIZ_NO_ZLIB_APIS -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES *.c
+  BUILD_CMD: -fno-stack-protector -O3 -msse3 -DNDEBUG -DMINIZ_NO_ZLIB_APIS -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES *.c
 
 jobs:
   fetch:
@@ -85,7 +85,7 @@ jobs:
       - working-directory: lib
         run: |
           clang -fPIC -c ${{ env.BUILD_CMD }}
-          [ $A -eq ubuntu-latest ] && SUFFIX= || SUFFIX=_arm
+          [ ${{ matrix.os }} = ubuntu-latest ] && SUFFIX= || SUFFIX=_arm
           ar rcs libutile$SUFFIX.a *.o
 
       - uses: actions/upload-artifact@v4
