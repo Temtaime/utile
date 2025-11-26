@@ -11,8 +11,11 @@
 	"libs-windows-x86_64": [
 		"$PACKAGE_DIR/bin/utile_x64"
 	],
-	"lflags-linux": [
+	"lflags-linux-x86_64": [
 		"$PACKAGE_DIR/bin/libutile.a"
+	],
+	"lflags-linux-aarch64": [
+		"$PACKAGE_DIR/bin/libutile_arm64.a"
 	],
 	"sourceFiles": [
 		"$PACKAGE_DIR/source/utile_console.c"
