@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 env:
-  BUILD_CMD: -fno-stack-protector -O3 -msse3 -DNDEBUG -DMINIZ_NO_ZLIB_APIS -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES *.c
+  BUILD_CMD: -fno-stack-protector -O3 -DNDEBUG -DMINIZ_NO_ZLIB_APIS -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES *.c
 
 jobs:
   fetch:
@@ -59,7 +59,7 @@ jobs:
 
       - working-directory: lib
         run: |
-          clang -m64 -fuse-ld=llvm-lib -o utile.lib ${{ env.BUILD_CMD }}
+          clang -m64 -fuse-ld=llvm-lib -o utile.lib ${{ env.BUILD_CMD }} -msse3
 
       - uses: actions/upload-artifact@v4
         with:
@@ -81,8 +81,9 @@ jobs:
 
       - working-directory: lib
         run: |
-          clang -fPIC -c ${{ env.BUILD_CMD }}
           [ ${{ matrix.os }} = ubuntu-latest ] && SUFFIX= || SUFFIX=_arm
+          [ ${{ matrix.os }} = ubuntu-latest ] && OPTS=-msse3 || OPTS=
+          clang -fPIC -c ${{ env.BUILD_CMD }} $OPTS
           ar rcs libutile$SUFFIX.a *.o
 
       - uses: actions/upload-artifact@v4
