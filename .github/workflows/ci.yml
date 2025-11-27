@@ -25,7 +25,7 @@ jobs:
 
       - uses: dlang-community/setup-dlang@v1
         with:
-          compiler: ${{ matrix.dub_compiler }}
+          compiler: ${{ matrix.dub_compiler }}-latest
 
       - run: |
           [ ${{ matrix.os }} = ubuntu-24.04-arm ] && ARCH=aarch64 || ARCH=x86_64
