@@ -81,7 +81,7 @@ jobs:
 
       - working-directory: lib
         run: |
-          [ ${{ matrix.os }} = ubuntu-latest ] && SUFFIX= || SUFFIX=_arm
+          [ ${{ matrix.os }} = ubuntu-latest ] && SUFFIX= || SUFFIX=_arm64
           [ ${{ matrix.os }} = ubuntu-latest ] && OPTS=-msse3 || OPTS=
           clang -fPIC -c ${{ env.BUILD_CMD }} $OPTS
           ar rcs libutile$SUFFIX.a *.o
