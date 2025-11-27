@@ -14,6 +14,9 @@ jobs:
       matrix:
         os: [ windows-latest, ubuntu-latest, ubuntu-24.04-arm ]
         dub_compiler: [ ldc, dmd ]
+        exclude:
+        - os: ubuntu-24.04-arm
+          dub_compiler: dmd
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -28,8 +31,7 @@ jobs:
           compiler: ${{ matrix.dub_compiler }}-latest
 
       - run: |
-          [ ${{ matrix.os }} = ubuntu-24.04-arm ] && ARCH=aarch64 || ARCH=x86_64
-          dub test -b unittest -a $ARCH
+          dub test -b unittest
 
   release:
     runs-on: ubuntu-latest
