@@ -11,11 +11,8 @@
 	"lflags-linux-x86_64": [
 		"$PACKAGE_DIR/bin/libutile_x86_64.a"
 	],
-	"lflags-linux-aarch64-gnu": [
-		"$PACKAGE_DIR/bin/libutile_aarch64.a"
-	],
-	"lflags-linux-aarch64-musl": [
-		"$PACKAGE_DIR/bin/libutile_aarch64_musl.a"
+	"lflags-linux-aarch64": [
+		"$PACKAGE_DIR/bin/libutile_aarch64$DUB_UTILE_MUSL.a"
 	],
 	"sourceFiles": [
 		"$PACKAGE_DIR/source/utile_console.c"

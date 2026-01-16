@@ -43,7 +43,7 @@ jobs:
 
       - run: |
           apk add ldc dub
-          dub test -b unittest
+          DUB_UTILE_MUSL=_musl dub test -b unittest
 
   release:
     runs-on: ubuntu-latest
