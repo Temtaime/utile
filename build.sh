@@ -8,7 +8,7 @@ OPTS=-msse3
 
 if [ -d /c/windows ]
 then
-	clang -m64 -fuse-ld=llvm-lib -m64 -o ../bin/utile.lib $CMD $OPTS *.c
+	clang -m64 -fuse-ld=llvm-lib -m64 -o utile.lib $CMD $OPTS *.c
 else
 	SUFFIX=$(uname -m)
 
@@ -30,5 +30,5 @@ else
 	fi
 
 	clang -fPIC -c $CMD $OPTS *.c
-	ar rcs ../bin/libutile$SUFFIX.a *.o
+	ar rcs libutile$SUFFIX.a *.o
 fi
