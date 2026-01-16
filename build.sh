@@ -24,6 +24,8 @@ else
 		;;
 	esac
 
+	SUFFIX=_$SUFFIX
+
 	if [ -d /usr/lib/$SUFFIX-linux-musl ]
 	then
 		SUFFIX=${SUFFIX}_musl
