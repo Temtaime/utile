@@ -25,11 +25,7 @@ else
 	esac
 
 	SUFFIX=_$SUFFIX
-
-	if [ -d /usr/lib/$SUFFIX-linux-musl ]
-	then
-		SUFFIX=${SUFFIX}_musl
-	fi
+	[ "$#" -eq 1 ] && SUFFIX=$SUFFIX$1 || :
 
 	clang -fPIC -c $CMD $OPTS *.c
 	ar rcs libutile$SUFFIX.a *.o
