@@ -97,7 +97,7 @@ jobs:
 
       - uses: jirutka/setup-alpine@v1
         with:
-          branch: latest
+          branch: latest-stable
 
       - shell: alpine.sh
         run: |
