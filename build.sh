@@ -6,7 +6,7 @@ cd ${0%/*}/lib
 CMD="-w -fno-stack-protector -O3 -DNDEBUG -DMINIZ_NO_ZLIB_APIS -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES"
 OPTS=-msse3
 
-if grep -q ^MSYS_ /proc/version
+if command -v clang-cl
 then
 	clang -m64 -fuse-ld=llvm-lib -m64 -o ../bin/utile.lib $CMD $OPTS *.c
 else
