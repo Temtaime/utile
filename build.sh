@@ -6,7 +6,7 @@ cd ${0%/*}/lib
 CMD="-w -fno-stack-protector -O3 -DNDEBUG -DMINIZ_NO_ZLIB_APIS -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES"
 OPTS=-msse3
 
-if command -v clang-cl
+if grep -q ^MSYS_ /proc/version
 then
 	clang -m64 -fuse-ld=llvm-lib -m64 -o ../bin/utile.lib $CMD $OPTS *.c
 else
@@ -24,7 +24,7 @@ else
 		;;
 	esac
 
-	if [ -d /usr/lib/$ARCH-linux-musl ]
+	if [ -d /usr/lib/$SUFFIX-linux-musl ]
 	then
 		SUFFIX=${SUFFIX}_musl
 	fi
