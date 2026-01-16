@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ windows-latest, ubuntu-latest, ubuntu-24.04-arm ]
+        os: [ windows-latest, ubuntu-latest, ubuntu-24.04-arm ] # FIXME : there's no ubuntu-latest-arm
         dub_compiler: [ ldc, dmd ]
         exclude:
         - os: ubuntu-24.04-arm
@@ -30,12 +30,24 @@ jobs:
         with:
           compiler: ${{ matrix.dub_compiler }}-latest
 
+      - run: dub test -b unittest
+
+  build-linux-musl:
+    runs-on: ubuntu-24.04-arm # FIXME : there's no ubuntu-latest-arm
+    container: alpine
+
+    steps:
+      - uses: laverdet/alpine-arm64@v1
+
+      - uses: actions/checkout@v4
+
       - run: |
+          apk add ldc dub
           dub test -b unittest
 
   release:
     runs-on: ubuntu-latest
-    needs: [ build ]
+    needs: [ build, build-linux-musl ]
     if: "!contains(github.event.head_commit.message, 'WIP')"
 
     steps:
