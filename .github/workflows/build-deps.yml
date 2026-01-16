@@ -77,8 +77,7 @@ jobs:
         with:
           ref: main
 
-      - run: |
-        [ ${{ matrix.os }} = ubuntu-latest ] && bash ./build.sh || ./build.sh
+      - run: '[ ${{ matrix.os }} = ubuntu-latest ] && bash ./build.sh || ./build.sh'
 
       - uses: actions/upload-artifact@v4
         with:
