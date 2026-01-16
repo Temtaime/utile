@@ -4,6 +4,9 @@
 	"authors": [
 		"Temtaime"
 	],
+	"defaultEnvironments": {
+		"DUB_UTILE_MUSL": ""
+	},
 	"description": "Useful things for D",
 	"libs-windows": [
 		"$PACKAGE_DIR/bin/utile"
