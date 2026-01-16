@@ -42,7 +42,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - run: |
-          apk add ldc dub
+          apk add ldc dub clang
           DUB_UTILE_MUSL=_musl dub test -b unittest
 
   release:
