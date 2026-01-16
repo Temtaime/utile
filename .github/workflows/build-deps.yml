@@ -92,7 +92,6 @@ jobs:
     container: alpine
 
     steps:
-    steps:
       - uses: laverdet/alpine-arm64@v1
 
       - uses: actions/checkout@v4
