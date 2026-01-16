@@ -3,9 +3,6 @@ name: Build deps
 on:
   workflow_dispatch:
 
-env:
-  BUILD_CMD: -fno-stack-protector -O3 -DNDEBUG -DMINIZ_NO_ZLIB_APIS -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES *.c
-
 jobs:
   fetch:
     runs-on: ubuntu-latest
@@ -57,9 +54,9 @@ jobs:
         with:
           arch: x64
 
-      - working-directory: lib
-        run: |
-          clang -m64 -fuse-ld=llvm-lib -o utile.lib ${{ env.BUILD_CMD }} -msse3
+      - uses: msys2/setup-msys2@v2
+      - shell: msys2 {0}
+        run: ./build.sh
 
       - uses: actions/upload-artifact@v4
         with:
@@ -79,12 +76,7 @@ jobs:
         with:
           ref: main
 
-      - working-directory: lib
-        run: |
-          [ ${{ matrix.os }} = ubuntu-latest ] && SUFFIX= || SUFFIX=_arm64
-          [ ${{ matrix.os }} = ubuntu-latest ] && OPTS=-msse3 || OPTS=
-          clang -fPIC -c ${{ env.BUILD_CMD }} $OPTS
-          ar rcs libutile$SUFFIX.a *.o
+      - run: ./build.sh
 
       - uses: actions/upload-artifact@v4
         with:

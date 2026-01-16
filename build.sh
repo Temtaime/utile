@@ -1,0 +1,34 @@
+#!/bin/sh
+set -eu; trap 'echo "$0 at line $LINENO: exit code is $?" >&2' ERR
+
+cd ${0%/*}/lib
+
+CMD="-w -fno-stack-protector -O3 -DNDEBUG -DMINIZ_NO_ZLIB_APIS -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES"
+OPTS=-msse3
+
+if command -v clang-cl
+then
+	clang -m64 -fuse-ld=llvm-lib -m64 -o ../bin/utile.lib $CMD $OPTS *.c
+else
+	SUFFIX=$(uname -m)
+
+	case $SUFFIX in
+	x86_64)
+		;;
+	aarch64)
+		OPTS=
+		;;
+	*)
+		echo "unsupported CPU"
+		exit 1
+		;;
+	esac
+
+	if [ -d /usr/lib/$ARCH-linux-musl ]
+	then
+		SUFFIX=${SUFFIX}_musl
+	fi
+
+	clang -fPIC -c $CMD $OPTS *.c
+	ar rcs ../bin/libutile$SUFFIX.a *.o
+fi
