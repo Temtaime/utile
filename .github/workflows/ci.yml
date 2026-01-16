@@ -30,7 +30,7 @@ jobs:
         with:
           compiler: ${{ matrix.dub_compiler }}-latest
 
-      - run: dub test -b unittest
+      - run: DUB_UTILE_MUSL= dub test -b unittest
 
   build-linux-musl:
     runs-on: ubuntu-24.04-arm # FIXME : there's no ubuntu-latest-arm
