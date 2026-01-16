@@ -78,7 +78,28 @@ jobs:
         with:
           ref: main
 
-      - run: '[ ${{ matrix.os }} = ubuntu-latest ] && bash ./build.sh || bash ./build.sh'
+      - run: bash ./build.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lib-linux-${{ strategy.job-index }}
+          path:
+            lib/*.a
+
+  build-linux-musl:
+    # needs: fetch
+    runs-on: ubuntu-24.04-arm # FIXME : there's no ubuntu-latest-arm
+    container:
+      image: docker://alpine:latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: main
+
+      - run: |
+          apk add clang
+          ./build.sh
 
       - uses: actions/upload-artifact@v4
         with:
