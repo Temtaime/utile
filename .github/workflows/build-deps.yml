@@ -89,15 +89,18 @@ jobs:
   build-linux-musl:
     # needs: fetch
     runs-on: ubuntu-24.04-arm # FIXME : there's no ubuntu-latest-arm
-    container:
-      image: docker://alpine:latest
 
     steps:
       - uses: actions/checkout@v2
         with:
           ref: main
 
-      - run: |
+      - uses: jirutka/setup-alpine@v1
+        with:
+          branch: latest
+
+      - shell: alpine.sh
+        run: |
           apk add clang
           ./build.sh
 
