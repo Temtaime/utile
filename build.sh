@@ -24,9 +24,6 @@ else
 		;;
 	esac
 
-	SUFFIX=_$SUFFIX
-	[ $# -eq 1 ] && SUFFIX=$SUFFIX$1 || :
-
 	clang -fPIC -c $CMD $OPTS *.c
-	ar rcs libutile$SUFFIX.a *.o
+	ar rcs libutile_$(uname -m).a *.o
 fi
