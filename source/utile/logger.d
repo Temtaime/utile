@@ -40,7 +40,20 @@ final class ConsoleLogger : Logger
 protected:
 	override void write(ushort color, string s)
 	{
-		colorize(stdout, color, () => cast(void)fprintf(stdout, "%.*s\n", cast(uint)s.length, s.ptr));
+		void dg() => cast(void)fprintf(stdout, "%.*s\n", cast(uint)s.length, s.ptr);
+
+		version (Windows)
+		{
+			if (isTerminal(stdout))
+			{
+				colorize(stdout, color, &dg);
+			}
+			else
+				dg();
+		}
+		else
+			colorize(stdout, color, &dg);
+
 		fflush(stdout);
 	}
 }
