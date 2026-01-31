@@ -70,7 +70,6 @@ void colorize(FILE* stream, ushort color, void delegate() dg)
 		}
 		else
 			dg();
-
 	}
 	else
 	{
@@ -110,80 +109,77 @@ string genColors(string name, ubyte offset)
 	return result ~ `}`;
 }
 
-version (Windows)
+uint shift(ubyte val, ubyte normal, ubyte bright)
 {
-	extern (C) int _isatty(int fd);
-
-	string genTable(string name, string base)
+	if (val == 0)
 	{
-		string result = `static immutable ushort[17] ` ~ name ~ `_TABLE = [ 0, 0,`;
-
-		foreach (i; 0 .. 2)
-		{
-			foreach (mask; 1 .. 8)
-			{
-				string s = only(`RED`, `GREEN`, `BLUE`)
-					.enumerate
-					.filter!(a => mask & (1 << a.index))
-					.map!(a => base ~ a.value)
-					.join(`|`);
-
-				if (i == 1)
-				{
-					result ~= base ~ `INTENSITY |`;
-				}
-
-				result ~= s ~ ",\n";
-			}
-
-			if (i == 0)
-			{
-				result ~= base ~ "INTENSITY,\n";
-			}
-		}
-
-		return result ~ `];`;
+		return 91 + normal;
 	}
 
-	mixin(genTable(`FG`, `FOREGROUND_`));
-	mixin(genTable(`BG`, `BACKGROUND_`));
-
-	enum OTHER_ATTRS = [
-			COMMON_LVB_LEADING_BYTE,
-			COMMON_LVB_TRAILING_BYTE,
-			COMMON_LVB_GRID_HORIZONTAL,
-			COMMON_LVB_GRID_LVERTICAL,
-			COMMON_LVB_GRID_RVERTICAL,
-			COMMON_LVB_REVERSE_VIDEO,
-			COMMON_LVB_UNDERSCORE
-		];
-
-	ushort makeAttrs(ubyte fg, ubyte bg, ushort attrs)
+	if (--val >= 8)
 	{
-		ushort result = attrs & OTHER_ATTRS.reduce!((a, b) => a | b);
-
-		static foreach (s; only(`fg`, `bg`))
-		{
-			mixin(`result |= ` ~ s ~ ` ? ` ~ s.toUpper ~ `_TABLE[` ~ s ~ `] : (attrs & ` ~ s.toUpper ~ `_TABLE.back);`);
-		}
-
-		return result;
+		return (val - 8) + bright;
 	}
+
+	return val + normal;
 }
-else
+
+version (Windows)  :  // formatter bug
+
+extern (C) int _isatty(int fd);
+
+string genTable(string name, string base)
 {
-	ubyte shift(ubyte val, ubyte normal, ubyte bright)
+	string result = `static immutable ushort[17] ` ~ name ~ `_TABLE = [ 0, 0,`;
+
+	foreach (i; 0 .. 2)
 	{
-		if (val == 0)
+		foreach (mask; 1 .. 8)
 		{
-			return 91 + normal;
+			string s = only(`RED`, `GREEN`, `BLUE`)
+				.enumerate
+				.filter!(a => mask & (1 << a.index))
+				.map!(a => base ~ a.value)
+				.join(`|`);
+
+			if (i == 1)
+			{
+				result ~= base ~ `INTENSITY |`;
+			}
+
+			result ~= s ~ ",\n";
 		}
 
-		if (--val >= 8)
+		if (i == 0)
 		{
-			return (val - 8) + bright;
+			result ~= base ~ "INTENSITY,\n";
 		}
-
-		return val + normal;
 	}
+
+	return result ~ `];`;
+}
+
+mixin(genTable(`FG`, `FOREGROUND_`));
+mixin(genTable(`BG`, `BACKGROUND_`));
+
+enum OTHER_ATTRS = [
+		COMMON_LVB_LEADING_BYTE,
+		COMMON_LVB_TRAILING_BYTE,
+		COMMON_LVB_GRID_HORIZONTAL,
+		COMMON_LVB_GRID_LVERTICAL,
+		COMMON_LVB_GRID_RVERTICAL,
+		COMMON_LVB_REVERSE_VIDEO,
+		COMMON_LVB_UNDERSCORE
+	];
+
+ushort makeAttrs(ubyte fg, ubyte bg, ushort attrs)
+{
+	ushort result = attrs & OTHER_ATTRS.reduce!((a, b) => a | b);
+
+	static foreach (s; only(`fg`, `bg`))
+	{
+		mixin(`result |= ` ~ s ~ ` ? ` ~ s.toUpper ~ `_TABLE[` ~ s ~ `] : (attrs & ` ~ s.toUpper ~ `_TABLE.back);`);
+	}
+
+	return result;
 }
