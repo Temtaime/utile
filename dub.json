@@ -10,8 +10,5 @@
 	],
 	"lflags-linux": [
 		"$PACKAGE_DIR/bin/libutile_$ARCH.a"
-	],
-	"sourceFiles": [
-		"$PACKAGE_DIR/source/utile_console.c"
 	]
 }

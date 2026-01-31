@@ -1,48 +1,47 @@
 module utile.logger;
-import std.conv, std.range, std.string, std.algorithm, core.stdc.stdio, utile_console;
+import std.conv, std.range, std.string, std.algorithm, core.stdc.stdio, utile.console;
 
 abstract class Logger
 {
 	final
 	{
-		void info(T)(T value) => log(CC_FG_GREEN, value.to!string);
-		void info(string F, A...)(A args) => log(CC_FG_GREEN, format!F(args));
+		mixin(makeFunc(`info`, `green`));
+		mixin(makeFunc(`info2`, `magenta`));
+		mixin(makeFunc(`info3`, `cyan`));
 
-		void info2(T)(T value) => log(CC_FG_MAGENTA, value.to!string);
-		void info2(string F, A...)(A args) => log(CC_FG_MAGENTA, format!F(args));
+		mixin(makeFunc(`warn`, `yellow`));
+		mixin(makeFunc(`error`, `red`));
 
-		void info3(T)(T value) => log(CC_FG_WHITE, value.to!string);
-		void info3(string F, A...)(A args) => log(CC_FG_WHITE, format!F(args));
-
-		void error(T)(T value) => log(CC_FG_RED, value.to!string);
-		void error(string F, A...)(A args) => log(CC_FG_RED, format!F(args));
-
-		void warning(T)(T value) => log(CC_FG_YELLOW, value.to!string);
-		void warning(string F, A...)(A args) => log(CC_FG_YELLOW, format!F(args));
-
-		void msg(T)(T value) => log(CC_FG_CYAN, value.to!string);
-		void msg(string F, A...)(A args) => log(CC_FG_CYAN, format!F(args));
+		mixin(makeFunc(`dbg`, `blue`));
+		mixin(makeFunc(`msg`, `white`));
 	}
 
 	ubyte ident;
 protected:
-	final void log(int c, string s)
+	final void log(ushort color, string s)
 	{
-		ident.iota.each!(a => write(c, "\t"));
-
-		write(c, s);
-		write(c, "\n");
+		ident.iota.each!(a => write(color, "\t"));
+		write(color, s);
 	}
 
-	void write(int color, string s);
+	void write(ushort color, string s);
+private:
+	static string makeFunc(string name, string color)
+	{
+		string s;
+		s ~= `void ` ~ name ~ `(T)(T value) => log(Fg.` ~ color ~ `, value.to!string);`;
+		s ~= `void ` ~ name ~ `(string F, A...)(A args) => log(Fg.` ~ color ~ `, format!F(args));`;
+		return s;
+	}
 }
 
 final class ConsoleLogger : Logger
 {
 protected:
-	override void write(int color, string s)
+	override void write(ushort color, string s)
 	{
-		print_stdout(color, s.length, s.ptr);
+		colorize(stdout, color, () => cast(void)fprintf(stdout, "%.*s\n", cast(uint)s.length, s.ptr));
+		fflush(stdout);
 	}
 }
 
@@ -50,6 +49,21 @@ __gshared Logger logger = new ConsoleLogger;
 
 unittest
 {
+	if (false)
+	{
+		foreach (ushort i, name; COLOR_NAMES)
+		{
+			string s = "This is fg color " ~ name;
+			colorize(stdout, i, () => cast(void)fprintf(stdout, "%.*s\n", cast(uint)s.length, s.ptr));
+		}
+
+		foreach (ushort i, name; COLOR_NAMES)
+		{
+			string s = "This is bg color " ~ name;
+			colorize(stdout, cast(ushort)(i << 5), () => cast(void)fprintf(stdout, "%.*s\n", cast(uint)s.length, s.ptr));
+		}
+	}
+
 	logger.msg(`hello, world`);
-	logger.msg!`%s, %s`(`hello`, `world`);
+	logger.info2!`%s, %s`(`hello`, `world`);
 }
