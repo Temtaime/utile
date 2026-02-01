@@ -1,5 +1,5 @@
 module utile.logger;
-import std.conv, std.range, std.string, std.algorithm, core.stdc.stdio, utile.console;
+import std.datetime, std.conv, std.range, std.string, std.algorithm, core.stdc.stdio, utile.console;
 
 abstract class Logger
 {
@@ -36,9 +36,22 @@ abstract class Logger
 	}
 
 	ubyte ident;
+	bool timeOutput;
 protected:
 	final void log(ushort color, string s)
 	{
+		if (timeOutput)
+		{
+			string time = Clock
+				.currTime
+				.toISOExtString(0)
+				.replace('T', ' ');
+
+			write(0, "[", false);
+			write(0, time, false);
+			write(0, "] ", false);
+		}
+
 		ident.iota.each!(a => write(color, "\t", false));
 		write(color, s, true);
 	}
@@ -64,6 +77,8 @@ __gshared Logger logger = new ConsoleLogger;
 
 unittest
 {
+	logger.timeOutput = true;
+
 	if (false)
 	{
 		foreach (ushort i, name; COLOR_NAMES)
