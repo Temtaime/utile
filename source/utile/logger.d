@@ -16,15 +16,34 @@ abstract class Logger
 		mixin(makeFunc(`msg`, `white`));
 	}
 
+	static write(FILE* stream, ushort color, string s, bool newline)
+	{
+		void dg() => cast(void)fprintf(stream, "%.*s%.*s", cast(uint)s.length, s.ptr, uint(newline), "\n".ptr);
+
+		version (Windows)
+		{
+			if (isTerminal(stream))
+			{
+				colorize(stream, color, &dg);
+			}
+			else
+				dg();
+		}
+		else
+			colorize(stream, color, &dg);
+
+		fflush(stream);
+	}
+
 	ubyte ident;
 protected:
 	final void log(ushort color, string s)
 	{
-		ident.iota.each!(a => write(color, "\t"));
-		write(color, s);
+		ident.iota.each!(a => write(color, "\t", false));
+		write(color, s, true);
 	}
 
-	void write(ushort color, string s);
+	void write(ushort color, string s, bool newline);
 private:
 	static string makeFunc(string name, string color)
 	{
@@ -35,27 +54,10 @@ private:
 	}
 }
 
-final class ConsoleLogger : Logger
+class ConsoleLogger : Logger
 {
 protected:
-	override void write(ushort color, string s)
-	{
-		void dg() => cast(void)fprintf(stdout, "%.*s\n", cast(uint)s.length, s.ptr);
-
-		version (Windows)
-		{
-			if (isTerminal(stdout))
-			{
-				colorize(stdout, color, &dg);
-			}
-			else
-				dg();
-		}
-		else
-			colorize(stdout, color, &dg);
-
-		fflush(stdout);
-	}
+	override void write(ushort color, string s, bool newline) => Logger.write(stdout, color, s, newline);
 }
 
 __gshared Logger logger = new ConsoleLogger;
@@ -67,13 +69,13 @@ unittest
 		foreach (ushort i, name; COLOR_NAMES)
 		{
 			string s = "This is fg color " ~ name;
-			colorize(stdout, i, () => cast(void)fprintf(stdout, "%.*s\n", cast(uint)s.length, s.ptr));
+			Logger.write(stdout, i, s, true);
 		}
 
 		foreach (ushort i, name; COLOR_NAMES)
 		{
 			string s = "This is bg color " ~ name;
-			colorize(stdout, cast(ushort)(i << 5), () => cast(void)fprintf(stdout, "%.*s\n", cast(uint)s.length, s.ptr));
+			Logger.write(stdout, cast(ushort)(i << 5), s, true);
 		}
 	}
 
