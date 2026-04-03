@@ -1,0 +1,56 @@
+NAME=${0##*/}
+NAME=${NAME%.*}
+
+CLANG=20
+
+DST=$PWD/generated/$NAME
+mkdir -p $DST
+
+if [ -d /c/windows ]
+then
+	IS_WIN=1
+	DST_LIB=$DST/$NAME.lib
+else
+	IS_WIN=0
+
+	apk update
+	apk add jq ldc dub libc++-static git ninja cmake make patch linux-headers autoconf automake pkgconfig libtool \
+		clang$CLANG llvm lld libc-dev libc++-dev \
+		llvm-libunwind llvm-libunwind-static xz-libs xz-dev xz-static \
+		ca-certificates curl bash \
+		python3 python3-dev \
+		go bzip2 xz unzip
+
+	SUFFIX=$(uname -m)
+	DST_LIB=$DST/lib${NAME}_$SUFFIX.a
+
+	export CC=clang-$CLANG
+	export CXX=clang++-$CLANG
+fi
+
+BASE_FLAGS="-fomit-frame-pointer -O3 -w -DNDEBUG"
+
+if [ $IS_WIN -ne 0 ] || [ $SUFFIX == x86_64 ]
+then
+	ARCH_FLAGS="-march=x86-64-v2 -m64"
+else
+	ARCH_FLAGS=-mcpu=cortex-a53+crypto+crc
+fi
+
+export CFLAGS="$BASE_FLAGS $ARCH_FLAGS ${EXTRA_FLAGS:-}"
+export CXXFLAGS="$CFLAGS"
+export C_FLAGS="$CFLAGS"
+export CXX_FLAGS="$CFLAGS"
+
+build_simple()
+{
+	cd $NAME/src
+
+	if [ $IS_WIN -ne 0 ]
+	then
+		clang -fuse-ld=llvm-lib $CFLAGS -o $DST_LIB *.c
+	else
+		$CC -fPIC $CFLAGS -c *.c
+		ar rcs $DST_LIB *.o
+	fi
+}
