@@ -1,21 +1,23 @@
 module utile.db.sqlite;
-import std, core.sync.mutex, core.sync.rwmutex, etc.c.sqlite3, utile.except, utile.db, utile.misc;
+import std, utile.except, utile.db, utile.misc;
+
+import utile_sqlite;
+
+shared static this()
+{
+	sqlite3_initialize() == SQLITE_OK || throwError!`failed to initialize sqlite`;
+}
+
+shared static ~this()
+{
+	sqlite3_shutdown();
+}
 
 final class SQLite : Db
 {
-	this(string name)
+	this(string name = `:memory:`)
 	{
-		const(char)* p;
-		auto flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
-
-		if (name.empty)
-		{
-			flags |= SQLITE_OPEN_MEMORY;
-		}
-		else
-			p = name.toStringz;
-
-		sqlite3_open_v2(p, &_db, flags, null) == SQLITE_OK || error;
+		sqlite3_open(name.toStringz, &_db) == SQLITE_OK || error;
 
 		query(`PRAGMA foreign_keys = ON;`);
 		query(`PRAGMA temp_store = MEMORY;`);
@@ -30,7 +32,7 @@ final class SQLite : Db
 
 	void backup(SQLite dest)
 	{
-		auto bk = sqlite3_backup_init(dest._db, MainDb, _db, MainDb);
+		auto bk = sqlite3_backup_init(dest._db, MAIN_DB, _db, MAIN_DB);
 		bk || throwError(`cannot init backup`);
 
 		scope (exit)
@@ -65,7 +67,7 @@ protected:
 	}
 
 private:
-	enum immutable(char)[4] MainDb = `main`;
+	enum MAIN_DB = `main`;
 
 	void process(sqlite3_stmt* stmt)
 	{
@@ -138,12 +140,11 @@ private:
 					}
 					else static if (is(T == string))
 					{
-						v = sqlite3_column_text(stmt, i)[0 .. dataLen(i)].idup;
+						v = sqlite3_column_text(stmt, i)[0 .. dataLen(i)].as!char.idup;
 					}
 					else static if (is(T == Blob))
 					{
-						v = cast(Blob)sqlite3_column_blob(stmt, i)[0 .. dataLen(i)];
-						v = v.dup;
+						v = sqlite3_column_blob(stmt, i)[0 .. dataLen(i)].toByte.dup;
 					}
 					else
 						static assert(false);

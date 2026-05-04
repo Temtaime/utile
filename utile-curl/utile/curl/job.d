@@ -1,0 +1,403 @@
+module utile.curl.job;
+
+import utile.curl, utile_curl;
+import std, core.atomic, core.sync.event, core.sync.mutex, core.thread, core.time, core.memory, utile;
+
+import std : min, max;
+
+import utile.mem, utile.net : Selector;
+
+final class Job
+{
+	package this(string url)
+	{
+		_handle = curl_easy_init();
+
+		version (Posix)
+		{
+			auto c = curl_easy_impersonate(_handle, `chrome142`, 0);
+			checkError(true, c, `impersonate`);
+		}
+
+		{
+			static immutable ubyte zero;
+			option(CURLOPT_ACCEPT_ENCODING, &zero); // allow all encodings
+		}
+
+		// FIXME : centos bug
+		{
+			enum CERT = `/etc/pki/tls/certs/ca-bundle.crt`;
+
+			if (CERT.exists)
+			{
+				option(CURLOPT_CAINFO, CERT);
+			}
+		}
+
+		gcNoMove(this, true);
+
+		option(CURLOPT_URL, url);
+		option(CURLOPT_PRIVATE, this);
+
+		option(CURLOPT_WRITEDATA, this);
+		option(CURLOPT_WRITEFUNCTION, &writerFunc);
+
+		option(CURLOPT_HEADERDATA, this);
+		option(CURLOPT_HEADERFUNCTION, &headersFunc);
+
+		option(CURLOPT_NOPROGRESS, 0);
+		option(CURLOPT_XFERINFODATA, this);
+		option(CURLOPT_XFERINFOFUNCTION, &xferinfoFunc);
+
+		_changeTime = MonoTime.currTime;
+	}
+
+	void buffers(uint sz)
+	{
+		option(CURLOPT_BUFFERSIZE, sz);
+		option(CURLOPT_UPLOAD_BUFFERSIZE, sz);
+	}
+
+	void version_(Alpn v)
+	{
+		option(CURLOPT_HTTP_VERSION, v);
+	}
+
+	void header(string header, string value)
+	{
+		_headers = curl_slist_append(_headers, only(header, value).join(':').toStringz);
+		option(CURLOPT_HTTPHEADER, _headers);
+	}
+
+	void etag(string etag)
+	{
+		header(`If-Match`, etag);
+	}
+
+	void range(ulong start, ulong end)
+	{
+		option(CURLOPT_RANGE, format!`%u-%u`(start, end));
+	}
+
+	void auth(string user, string pass)
+	{
+		option(CURLOPT_USERNAME, user);
+		option(CURLOPT_PASSWORD, pass);
+	}
+
+	void upload()
+	{
+		option(CURLOPT_UPLOAD, 1);
+		option(CURLOPT_READDATA, this);
+		option(CURLOPT_READFUNCTION, &readerFunc);
+	}
+
+	void upload(in void[] data)
+	{
+		static assert(size_t.sizeof == 8);
+
+		option(CURLOPT_INFILESIZE_LARGE, data.length);
+		upload();
+
+		_postdata = data.toByte;
+	}
+
+	void noBody()
+	{
+		_noBody = true;
+		option(CURLOPT_NOBODY, 1);
+	}
+
+	void method(string m)
+	{
+		option(CURLOPT_CUSTOMREQUEST, m);
+
+		if (m == Method.head || m == Method.put || m == Method.delete_)
+		{
+			noBody;
+		}
+	}
+
+	void wait()
+	{
+		while (!_done)
+		{
+			Fiber.yield;
+		}
+	}
+
+	void wakeup()
+	{
+		assert(_paused);
+
+		{
+			auto c = curl_easy_pause(_handle, CURLPAUSE_CONT);
+			checkError(true, c, `resume`);
+		}
+
+		_paused = false;
+	}
+
+	string responseHeader(string name) => _responseHeaders.get(name.toLower, null);
+
+	uint delegate(Job, ubyte[] data) onRead;
+	uint delegate(Job, ubyte[] data) onWrite;
+
+	void delegate(Job) onHeaders;
+	void delegate(Job) onComplete;
+package:
+	mixin publicProperty!(bool, `aborted`);
+
+	void complete()
+	{
+		gcNoMove(this, false);
+
+		checkLength;
+
+		try
+		{
+			if (onComplete)
+			{
+				onComplete(this);
+			}
+		}
+		catch (Exception ex)
+		{
+			logger.error(ex);
+		}
+
+		_done = true;
+		onComplete = null;
+	}
+
+	void cleanup()
+	{
+		curl_easy_cleanup(_handle);
+		curl_slist_free_all(_headers);
+	}
+
+	static fromHandle(CURL* handle)
+	{
+		Job job;
+		optget(handle, CURLINFO_PRIVATE, job);
+		return job;
+	}
+
+	@property handle() => _handle;
+private:
+	mixin publicProperty!(bool, `done`);
+	mixin publicProperty!(bool, `isError`, `true`);
+
+	mixin publicProperty!(bool, `paused`);
+
+	mixin publicProperty!(Blob, `data`);
+	mixin publicProperty!(long, `contentLength`, `-1`);
+
+	mixin publicProperty!(ushort, `code`);
+	mixin publicProperty!(string[string], `responseHeaders`);
+
+	void option(CURLoption opt, string value) => option(opt, value.toStringz);
+	void option(T)(CURLoption opt, T value) if (is(T == class) || isPointer!T) => option(opt, cast(long)cast(void*)value);
+
+	void option(CURLoption opt, long value)
+	{
+		auto res = curl_easy_setopt(_handle, opt, value); // always pass value as 64-bit integer
+		checkError(true, res, `option`);
+	}
+
+	static optget(T)(CURL* handle, CURLINFO opt, ref T value)
+	{
+		auto res = curl_easy_getinfo(handle, opt, &value);
+		checkError(true, res, `get info`);
+	}
+
+	void optget(T)(CURLINFO opt, ref T value) => optget(_handle, opt, value);
+
+	void checkLength()
+	{
+		if (_noBody)
+			return;
+
+		if (onWrite is null && _data.length != _contentLength)
+		{
+			_isError = true;
+			logger.error!`content-length is %u, but response length is %u`(_contentLength, _data.length);
+		}
+	}
+
+	extern (C) static
+	{
+		static int xferinfoFunc(void* clientp, curl_off_t, curl_off_t dnow, curl_off_t, curl_off_t unow)
+		{
+			auto self = cast(Job)clientp;
+
+			with (self)
+			{
+				bool ok = _upload != cast(uint)unow || _download != cast(uint)dnow;
+
+				if (ok)
+				{
+					_changeTime = MonoTime.currTime;
+
+					_upload = cast(uint)unow;
+					_download = cast(uint)dnow;
+				}
+				else
+				{
+					auto delay = MonoTime.currTime - _changeTime;
+
+					if (delay >= CONNECTION_IDLE_ABORT_TIME)
+					{
+						logger.error!`connection was idle for %s, aborting`(delay);
+
+						_isError = true;
+						_aborted = true;
+
+						return 1;
+					}
+				}
+			}
+
+			return 0;
+		}
+
+		size_t headersFunc(char* buffer, size_t size, size_t nitems, void* userdata)
+		{
+			assert(size == 1);
+
+			auto s = buffer[0 .. nitems].assumeUnique.strip;
+			auto self = cast(Job)userdata;
+
+			with (self)
+			{
+				if (s.empty)
+				{
+					if (onHeaders)
+					{
+						onHeaders(self);
+					}
+
+					return nitems;
+				}
+
+				if (s.startsWith(`HTTP/`))
+				{
+					auto chunks = s.split;
+
+					if (chunks.length >= 2)
+					{
+						_code = cast(ushort)chunks[1].to!ushort;
+						_isError = _code / 100 != 2;
+					}
+					else
+					{
+						logger.error!`bad status line: %s`(s);
+					}
+
+					_responseHeaders.clear;
+					return nitems;
+				}
+
+				auto idx = s.indexOf(':');
+
+				if (idx < 0)
+				{
+					logger.error!`bad header: %s`(s);
+				}
+				else
+				{
+					auto key = s[0 .. idx].stripRight.dup;
+					key.toLowerInPlace;
+
+					auto value = s[idx + 1 .. $].stripLeft.idup;
+
+					if (key == `content-length`)
+					{
+						_contentLength = value.to!long;
+					}
+
+					_responseHeaders[key.assumeUnique] = value;
+				}
+
+				return nitems;
+			}
+		}
+
+		size_t readerFunc(ubyte* tmp, size_t size, size_t blocks, void* userdata)
+		{
+			auto chunk = tmp[0 .. size * blocks];
+			auto self = cast(Job)userdata;
+
+			with (self)
+			{
+				if (onRead)
+				{
+					uint n = onRead(self, chunk);
+
+					switch (n)
+					{
+					case Read.abort:
+						_aborted = true;
+						return n;
+
+					case Read.pause:
+						_paused = true;
+						return n;
+
+					default:
+						return n;
+					}
+				}
+
+				auto k = min(chunk.length, _postdata.length);
+
+				chunk[] = _postdata[0 .. k];
+				_postdata = _postdata[k .. $];
+
+				return k;
+			}
+		}
+
+		size_t writerFunc(ubyte* tmp, size_t size, size_t blocks, void* userdata)
+		{
+			auto chunk = tmp[0 .. size * blocks];
+			auto self = cast(Job)userdata;
+
+			with (self)
+			{
+				if (onWrite)
+				{
+					uint n = onWrite(self, chunk);
+
+					switch (n)
+					{
+					case Write.abort:
+						_aborted = true;
+						return n;
+
+					case Write.pause:
+						_paused = true;
+						return n;
+
+					default:
+						return n;
+					}
+				}
+
+				_data ~= chunk;
+				return chunk.length;
+			}
+		}
+	}
+
+	bool _noBody;
+	MonoTime _changeTime;
+
+	uint _upload;
+	uint _download;
+
+	curl_slist* _headers;
+	Blob _postdata;
+
+	CURL* _handle;
+}

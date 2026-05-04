@@ -44,7 +44,12 @@ export CXX_FLAGS="$CFLAGS"
 
 build_simple()
 {
-	cd $NAME/src
+	if [ "$#" -eq 0 ]
+	then
+		cd $NAME/src
+	else
+		cd $1
+	fi
 
 	if [ $IS_WIN -ne 0 ]
 	then

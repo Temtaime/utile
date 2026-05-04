@@ -1,10 +1,6 @@
 name: build deps
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -46,6 +42,7 @@ jobs:
     needs: fetch
 
     strategy:
+      fail-fast: false
       matrix:
         os: [ ubuntu-latest, ubuntu-24.04-arm, windows-latest ] # FIXME : there's no ubuntu-latest-arm
         dep: [ microhttpd, sqlite, miniz, curl-impersonate ]

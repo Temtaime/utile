@@ -28,3 +28,6 @@ private:
 	string _msg;
 	StopWatch _sw;
 }
+
+uint toMsecs(Duration d) => cast(uint)d.total!`msecs`;
+uint toSecs(Duration d) => cast(uint)d.total!`seconds`;

@@ -5,10 +5,131 @@
 		"Temtaime"
 	],
 	"description": "Useful things for D",
-	"libs-windows": [
-		"$PACKAGE_DIR/bin/utile"
-	],
-	"lflags-linux": [
-		"$PACKAGE_DIR/bin/libutile_$ARCH.a"
+	"subPackages": [
+		{
+			"name": "curl",
+			"description": "CURL binding",
+			"dflags": [
+				"-P-I$PACKAGE_DIR/deps/curl-impersonate/include"
+			],
+			"libs-windows": [
+				"$PACKAGE_DIR/deps/curl-impersonate/curl-impersonate",
+				"crypt32",
+				"wldap32",
+				"normaliz",
+				"iphlpapi"
+			],
+			"lflags-linux": [
+				"$PACKAGE_DIR/deps/curl-impersonate/libcurl-impersonate_$ARCH.a",
+				"-lc++abi"
+			],
+			"sourcePaths": [
+				"utile-curl"
+			],
+			"importPaths": [
+				"utile-curl"
+			],
+			"dependencies": {
+				"utile": "*"
+			}
+		},
+		{
+			"name": "sqlite",
+			"description": "SQLite binding",
+			"dflags": [
+				"-P-I$PACKAGE_DIR/deps/sqlite/src"
+			],
+			"libs-windows": [
+				"$PACKAGE_DIR/deps/sqlite/sqlite"
+			],
+			"lflags-linux": [
+				"$PACKAGE_DIR/deps/sqlite/libsqlite_$ARCH.a"
+			],
+			"sourcePaths": [
+				"utile-sqlite"
+			],
+			"importPaths": [
+				"utile-sqlite"
+			],
+			"dependencies": {
+				"utile": "*"
+			}
+		},
+		{
+			"name": "zip",
+			"description": "Miniz binding",
+			"dflags": [
+				"-P-I$PACKAGE_DIR/deps/miniz/src"
+			],
+			"libs-windows": [
+				"$PACKAGE_DIR/deps/miniz/miniz"
+			],
+			"lflags-linux": [
+				"$PACKAGE_DIR/deps/miniz/libminiz_$ARCH.a"
+			],
+			"sourcePaths": [
+				"utile-zip"
+			],
+			"importPaths": [
+				"utile-zip"
+			],
+			"dependencies": {
+				"utile": "*"
+			}
+		},
+		{
+			"name": "web",
+			"description": "MicroHTTPD binding",
+			"dflags": [
+				"-P-I$PACKAGE_DIR/deps/microhttpd/include"
+			],
+			"libs-windows": [
+				"$PACKAGE_DIR/deps/microhttpd/microhttpd"
+			],
+			"lflags-linux": [
+				"$PACKAGE_DIR/deps/microhttpd/libmicrohttpd_$ARCH.a"
+			],
+			"sourcePaths": [
+				"utile-web"
+			],
+			"importPaths": [
+				"utile-web"
+			],
+			"dependencies": {
+				"utile": "*"
+			}
+		},
+		{
+			"name": "tun",
+			"description": "tun interface binding",
+			"sourcePaths": [
+				"utile-tun"
+			],
+			"importPaths": [
+				"utile-tun"
+			],
+			"dependencies": {
+				"utile": "*"
+			}
+		},
+		{
+			"name": "test",
+			"description": "Test suite for all subpackages",
+			"targetType": "executable",
+			"dependencies": {
+				"utile": "*",
+				"utile:curl": "*",
+				"utile:sqlite": "*",
+				"utile:zip": "*",
+				"utile:web": "*",
+				"utile:tun": "*"
+			},
+			"sourcePaths": [
+				"utile-test"
+			],
+			"importPaths": [
+				"utile-test"
+			]
+		}
 	]
 }

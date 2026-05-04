@@ -1,5 +1,4 @@
-module utile.binary.tests;
-import std, utile.misc, utile.binary, utile.logger, utile.binary.helpers;
+import std, utile, utile.binary.helpers;
 
 void ensureResult(T)(in T value, const(ubyte)[] data)
 {
@@ -248,7 +247,9 @@ unittest
 	serializeFile(File, t);
 
 	scope (exit)
+	{
 		std.file.remove(File);
+	}
 
 	assert(deserializeFile!Test(File) == t);
 }

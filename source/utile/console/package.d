@@ -36,66 +36,83 @@ enum string[17] COLOR_NAMES = [
 mixin(genColors(`Fg`, 0));
 mixin(genColors(`Bg`, COLOR_BITS));
 
-void colorize(FILE* stream, ushort color, void delegate() dg)
+struct Colorizer
 {
-	version (Windows)
+	this(FILE* stream, ushort color)
 	{
-		assert(isTerminal(stream));
-	}
+		_stream = stream;
 
-	ubyte fg = color & ((1 << COLOR_BITS) - 1);
-	ubyte bg = (color >> COLOR_BITS) & ((1 << COLOR_BITS) - 1);
+		_fg = color & ((1 << COLOR_BITS) - 1);
+		_bg = (color >> COLOR_BITS) & ((1 << COLOR_BITS) - 1);
 
-	assert(fg < COLOR_NAMES.length);
-	assert(bg < COLOR_NAMES.length);
+		assert(_fg < COLOR_NAMES.length);
+		assert(_bg < COLOR_NAMES.length);
 
-	version (Windows)
-	{
-		auto console = GetStdHandle(stream == stdout ? STD_OUTPUT_HANDLE : STD_ERROR_HANDLE);
-
-		if (console == INVALID_HANDLE_VALUE)
+		version (Windows)
 		{
-			return dg();
-		}
+			if (isTerminal(_stream))
+			{
+				auto con = GetStdHandle(_stream == stdout ? STD_OUTPUT_HANDLE : STD_ERROR_HANDLE);
 
-		CONSOLE_SCREEN_BUFFER_INFO csbi;
-
-		if (GetConsoleScreenBufferInfo(console, &csbi))
-		{
-			SetConsoleTextAttribute(console, makeAttrs(fg, bg, csbi.wAttributes));
-
-			dg();
-
-			SetConsoleTextAttribute(console, csbi.wAttributes);
+				if (con != INVALID_HANDLE_VALUE && GetConsoleScreenBufferInfo(con, &_csbi))
+				{
+					SetConsoleTextAttribute(_console = con, makeAttrs(_fg, _bg, _csbi.wAttributes));
+				}
+			}
 		}
 		else
-			dg();
+		{
+			fprintf(_stream, "\x1B[39;49;%u;%um", shift(_fg, 30, 90), shift(_bg, 40, 100));
+		}
 	}
-	else
+
+	~this()
 	{
-		fprintf(stream, "\x1B[39;49;%u;%um", shift(fg, 30, 90), shift(bg, 40, 100));
+		fflush(_stream);
 
-		dg();
-
-		fputs("\x1B[39;49m\x1B[K", stream);
+		version (Windows)
+		{
+			if (_console != INVALID_HANDLE_VALUE)
+			{
+				SetConsoleTextAttribute(_console, _csbi.wAttributes);
+			}
+		}
+		else
+		{
+			fputs("\x1B[39;49m\x1B[K", _stream);
+		}
 	}
+
+private:
+	FILE* _stream;
+
+	version (Windows)
+	{
+		HANDLE _console = INVALID_HANDLE_VALUE;
+		CONSOLE_SCREEN_BUFFER_INFO _csbi;
+	}
+
+	ubyte _fg;
+	ubyte _bg;
 }
 
 bool isTerminal(FILE* file)
 {
 	version (Windows)
 	{
-		return _isatty(fileno(file)) && (file == stdout || file == stderr);
+		alias F = _isatty;
 	}
 	else
 	{
-		return isatty(fileno(file)) && (file == stdout || file == stderr);
+		alias F = isatty;
 	}
+
+	return F(fileno(file)) && (file == stdout || file == stderr);
 }
 
-private:
-
 enum COLOR_BITS = 5;
+
+private:
 
 string genColors(string name, ubyte offset)
 {
