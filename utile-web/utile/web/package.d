@@ -5,8 +5,6 @@ import utile_microhttpd;
 
 public import utile.web.client;
 
-//static assert(_FD_SETSIZE == 1024);
-
 class WebServer
 {
 	this(ushort port, Duration connectionTimeout)
@@ -30,20 +28,21 @@ class WebServer
 		MHD_stop_daemon(_daemon);
 	}
 
-	void run(ref Selector s)
+	void run(ThreeSet ts)
 	{
-		MHD_run_from_select(_daemon, s.asPtr!F.expand) || throwError!`failed to run MHD from select`;
+		MHD_run_from_select(_daemon, ts.rp!F, ts.wp!F, ts.ep!F) || throwError!`failed to run MHD from select`;
 	}
 
-	void fdset(ref Selector s)
+	void fdset(ThreeSet ts)
 	{
-		MHD_socket maxfd;
-		MHD_get_fdset(_daemon, s.asPtr!F.expand, &maxfd) || throwError!`failed to get MHD fdset`;
+		MHD_socket fd;
 
-		s.add(cast(int)maxfd);
+		MHD_get_fdset(_daemon, ts.rp!F, ts.wp!F, ts.ep!F, &fd) || throwError!`failed to get MHD fdset`;
+
+		ts.maxFd = cast(int)fd;
 	}
 
-	WebClient delegate(void* conn, string url, string method) createClient;
+	nothrow WebClient delegate(void* conn, string url, string method) createClient;
 private:
 	alias F = utile_microhttpd.fd_set;
 

@@ -1,20 +1,9 @@
 module utile.curl.requests;
 
-import std, core.atomic, core.sync.event, core.sync.mutex, core.thread, core.time, core.memory, utile;
+import std, core.atomic, core.sync.event, core.sync.mutex, core.thread, core.time, core.memory, utile, utile.net;
 
 import utile.curl, utile_curl;
 import std : min, max;
-
-import utile.net : Selector;
-
-version (Windows)
-{
-	import core.sys.windows.winsock2 : fd_set;
-}
-else
-{
-	import core.sys.posix.sys.select : fd_set;
-}
 
 final class Requests
 {
@@ -45,18 +34,18 @@ final class Requests
 		return job;
 	}
 
-	void fdset(ref Selector s)
+	void fdset(ThreeSet ts)
 	{
 		alias F = utile_curl.fd_set;
 
-		int maxfd;
+		int fd;
 
 		{
-			auto mc = curl_multi_fdset(_m, s.asPtr!F.expand, &maxfd);
+			auto mc = curl_multi_fdset(_m, ts.rp!F, ts.wp!F, ts.ep!F, &fd);
 			checkErrorM(false, mc, `fdset`);
 		}
 
-		s.add(maxfd);
+		ts.maxFd = fd;
 	}
 
 	void run()

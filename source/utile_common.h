@@ -1,0 +1,1 @@
+#pragma attribute(push, nothrow)

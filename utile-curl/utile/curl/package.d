@@ -6,6 +6,13 @@ import utile_curl;
 public import utile.curl.job;
 public import utile.curl.requests;
 
+shared static this()
+{
+	auto c = curl_global_init(CURL_GLOBAL_ALL);
+
+	checkError(true, c, `global init`);
+}
+
 enum Alpn
 {
 	any = CURL_HTTP_VERSION_NONE,
@@ -42,12 +49,6 @@ enum Write
 }
 
 package:
-shared static this()
-{
-	auto c = curl_global_init(CURL_GLOBAL_ALL);
-
-	checkError(true, c, `global init`);
-}
 
 enum CONNECTION_IDLE_ABORT_TIME = 60.seconds;
 

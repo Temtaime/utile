@@ -7,69 +7,77 @@ import utile_microhttpd;
 
 abstract class WebClient
 {
-	this(void* conn, string url, string method)
+	nothrow
 	{
-		_conn = cast(MHD_Connection*)conn;
-		_url = url;
-		_method = method;
-
-		version (none)
+		this(void* conn, string url, string method)
 		{
-			MHD_connection_set_cork_state_(_conn, false) || throwError!`failed to set cork state`;
-			MHD_connection_set_nodelay_state_(_conn, true) || throwError!`failed to set nodelay state`;
+			_conn = cast(MHD_Connection*)conn;
+			_url = url;
+			_method = method;
+
+			MHD_get_connection_values_n(_conn, MHD_HEADER_KIND, &collectHeaders, this.toVoid); // >= 0 || throwError!`failed to get connection headers`;
 		}
 
-		MHD_get_connection_values_n(_conn, MHD_HEADER_KIND, &collectHeaders, this.toVoid) >= 0 || throwError!`failed to get connection headers`;
-	}
+		abstract void onCreate();
+		abstract void onResponse();
+		abstract void onComplete();
 
-	abstract void onCreate();
-	abstract void onResponse();
-	abstract void onComplete();
+		// used for chunked responses
+		int onSend(ulong pos, ubyte[] chunk)
+		{
+			assert(false);
+		}
 
-	abstract int onSend(ulong pos, ubyte[] chunk);
-	abstract void onReceive(in ubyte[] chunk);
+		// used for receiving request body in chunks
+		void onReceive(in ubyte[] chunk)
+		{
+		}
 
-	void send(ushort code, string msg)
-	{
-		auto response = MHD_create_response_from_buffer_copy(msg.length, msg.ptr);
+		void send(ushort code, string msg)
+		{
+			auto response = MHD_create_response_from_buffer_copy(msg.length, msg.ptr);
 
-		queueResponse(response, code);
-		MHD_destroy_response(response);
-	}
+			queueResponse(response, code);
+			MHD_destroy_response(response);
+		}
 
-	void send(uint chunkSize)
-	{
-		auto response = MHD_create_response_from_callback(
-			_MHD_SIZE_UNKNOWN,
-			chunkSize,
-			&cbReader,
-			this.toVoid,
-			&cbReaderEnd);
+		void send(uint chunkSize)
+		{
+			auto response = MHD_create_response_from_callback(
+				_MHD_SIZE_UNKNOWN,
+				chunkSize,
+				&cbReader,
+				this.toVoid,
+				&cbReaderEnd);
 
-		queueResponse(response, 200);
-		MHD_destroy_response(response);
+			queueResponse(response, 200);
+			MHD_destroy_response(response);
+		}
 	}
 
 	string[string] responseHeaders;
 private:
-	void queueResponse(MHD_Response* response, ushort code)
+	nothrow
 	{
-		processHeaders(response);
-
-		if (MHD_queue_response(_conn, code, response) == MHD_NO)
+		void queueResponse(MHD_Response* response, ushort code)
 		{
-			logger.error!`failed to queue response`;
-		}
-	}
+			processHeaders(response);
 
-	void processHeaders(MHD_Response* response)
-	{
-		foreach (k, v; responseHeaders)
-		{
-			MHD_add_response_header(response, k.toStringz, v.toStringz) || throwError!`failed to set header: %s=%s`(k, v);
+			if (MHD_queue_response(_conn, code, response) == MHD_NO)
+			{
+				//logger.error!`failed to queue response`;
+			}
 		}
 
-		responseHeaders.clear;
+		void processHeaders(MHD_Response* response)
+		{
+			foreach (kv; responseHeaders.byKeyValue)
+			{
+				MHD_add_response_header(response, kv.key.toStringz, kv.value.toStringz); // || throwError!`failed to set header: %s=%s`(k, v);
+			}
+
+			responseHeaders.clear;
+		}
 	}
 
 	mixin publicProperty!(string, `url`);
@@ -79,7 +87,7 @@ private:
 	MHD_Connection* _conn;
 }
 
-extern (C) static:
+extern (C) static nothrow:
 
 MHD_Result collectHeaders(
 	void* cls,
@@ -93,10 +101,9 @@ MHD_Result collectHeaders(
 	{
 		assert(kind == MHD_HEADER_KIND);
 
-		auto k = key[0 .. keySize].dup;
-		k.toLowerInPlace;
+		auto k = key[0 .. keySize];
 
-		_headers[k.assumeUnique] = value[0 .. valueSize].idup;
+		_headers[k.toLowerDup] = value[0 .. valueSize].idup;
 	}
 
 	return MHD_YES;

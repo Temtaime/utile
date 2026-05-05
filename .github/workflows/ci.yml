@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ windows-latest ]
-        compiler: [ ldc, dmd ]
+        compiler: [ ldc-1.41, dmd-2.111 ]
 
     runs-on: windows-latest
     steps:
@@ -23,9 +23,9 @@ jobs:
         with:
           arch: x64
 
-      - uses: dlang-community/setup-dlang@v1
+      - uses: dlang-community/setup-dlang@v2
         with:
-          compiler: ${{ matrix.compiler }}-latest
+          compiler: ${{ matrix.compiler }}
 
       - run: dub test :test
 

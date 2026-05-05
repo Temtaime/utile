@@ -10,5 +10,7 @@
 #ifdef UTILE_BUILD
 	#include "../deps/sqlite/src/sqlite3.c"
 #else
+	#include "../source/utile_common.h"
+
 	#include <sqlite3.h>
 #endif

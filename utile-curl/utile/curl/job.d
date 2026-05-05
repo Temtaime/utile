@@ -5,7 +5,7 @@ import std, core.atomic, core.sync.event, core.sync.mutex, core.thread, core.tim
 
 import std : min, max;
 
-import utile.mem, utile.net : Selector;
+import utile.mem, utile.net;
 
 final class Job
 {
@@ -138,6 +138,13 @@ final class Job
 		_paused = false;
 	}
 
+	Blob data() const @property
+	{
+		isLengthBad && throwError!`content-length is %u, but response length is %u`(_contentLength, _data.length);
+
+		return _data;
+	}
+
 	string responseHeader(string name) => _responseHeaders.get(name.toLower, null);
 
 	uint delegate(Job, ubyte[] data) onRead;
@@ -152,7 +159,10 @@ package:
 	{
 		gcNoMove(this, false);
 
-		checkLength;
+		if (isLengthBad)
+		{
+			_isError = true;
+		}
 
 		try
 		{
@@ -189,8 +199,6 @@ private:
 	mixin publicProperty!(bool, `isError`, `true`);
 
 	mixin publicProperty!(bool, `paused`);
-
-	mixin publicProperty!(Blob, `data`);
 	mixin publicProperty!(long, `contentLength`, `-1`);
 
 	mixin publicProperty!(ushort, `code`);
@@ -213,16 +221,14 @@ private:
 
 	void optget(T)(CURLINFO opt, ref T value) => optget(_handle, opt, value);
 
-	void checkLength()
+	bool isLengthBad() const
 	{
-		if (_noBody)
-			return;
-
-		if (onWrite is null && _data.length != _contentLength)
+		if (_noBody || _contentLength < 0 || onWrite is null)
 		{
-			_isError = true;
-			logger.error!`content-length is %u, but response length is %u`(_contentLength, _data.length);
+			return false;
 		}
+
+		return _data.length != _contentLength;
 	}
 
 	extern (C) static
@@ -395,6 +401,8 @@ private:
 
 	uint _upload;
 	uint _download;
+
+	Blob _data;
 
 	curl_slist* _headers;
 	Blob _postdata;
