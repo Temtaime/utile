@@ -2,14 +2,14 @@ import core.stdc.stdio, utile, utile.console, utile.log.base;
 
 unittest
 {
-	foreach (ushort i, name; COLOR_NAMES)
+	static foreach (name; COLOR_NAMES)
 	{
-		logger.log(i, "this is fg color " ~ name);
+		logger.log(mixin(`Fg.` ~ name), "this is fg color " ~ name);
 	}
 
-	foreach (ushort i, name; COLOR_NAMES)
+	static foreach (name; COLOR_NAMES)
 	{
-		logger.log(cast(ushort)(i << COLOR_BITS), "this is fg color " ~ name);
+		logger.log(mixin(`Bg.` ~ name), "this is bg color " ~ name);
 	}
 }
 

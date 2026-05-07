@@ -5,32 +5,42 @@ public import utile.binary.attrs, utile.binary.streams;
 
 size_t writeLength(T)(in T value, string file = __FILE__, uint line = __LINE__)
 {
-	return Serializer!LengthCalcStream().write(value, true, file, line).stream.written;
+	return Serializer!LengthCalcStream()
+		.write(value, true, file, line)
+		.stream
+		.written;
 }
 
 void serializeFile(T)(string name, in T value, string file = __FILE__, uint line = __LINE__)
 {
 	scope mm = new MmFile(name, MmFile.Mode.readWriteNew, writeLength(value, file, line), null);
 
-	mm[].Serializer!MemoryStream.write(value, true, file, line);
+	mm[]
+		.Serializer!MemoryStream
+		.write(value, true, file, line);
 }
 
 T deserializeFile(T)(string name, string file = __FILE__, uint line = __LINE__)
 {
 	scope mm = new MmFile(name);
 
-	return mm[].Serializer!MemoryStream
+	return mm[]
+		.Serializer!MemoryStream
 		.read!T(true, file, line);
 }
 
 ubyte[] serializeMem(T)(in T value, string file = __FILE__, uint line = __LINE__)
 {
-	return Serializer!AppendStream().write(value, true, file, line).stream.data;
+	return Serializer!AppendStream()
+		.write(value, true, file, line)
+		.stream
+		.data;
 }
 
 T deserializeMem(T)(in void[] data, bool ensureFullyParsed = true, string file = __FILE__, uint line = __LINE__)
 {
-	return data.Serializer!MemoryStream
+	return data
+		.Serializer!MemoryStream
 		.read!T(ensureFullyParsed, file, line);
 }
 
@@ -99,14 +109,17 @@ private:
 			return throwError!"variable %s mismatch(%s when %s expected)"(file, line, variableName, *tmp, *p);
 		}
 
-		bool errorValid(T)(T * p) => throwError!"variable %s has invalid value %s"(file, line, variableName,  * p);
+		bool errorValid(T)(T* p) => throwError!"variable %s has invalid value %s"(file, line, variableName, *p);
 	}
 
 	pragma(inline, true) void doProcess(bool Writing, T, P)(ref T data, ref P parent)
 	{
 		_depth++;
+
 		scope (exit)
+		{
 			_depth--;
+		}
 
 		enum Reading = !Writing;
 		auto evaluateData = tuple!(`input`, `parent`, `that`, `stream`)(input, &parent, &data, stream);
@@ -136,7 +149,9 @@ private:
 					size_t cnt = skip(evaluateData);
 
 					static if (Writing)
+					{
 						stream.wskip(cnt) || errorWSkip;
+					}
 					else
 						stream.rskip(cnt) || errorRSkip;
 				}
@@ -154,7 +169,9 @@ private:
 							alias def = templateParamFor!(Default, attrs);
 
 							static if (!is(def == void))
+							{
 								*p = def(evaluateData);
+							}
 						}
 
 						continue;
@@ -176,7 +193,9 @@ private:
 			static if (isDataSimple!R)
 			{
 				static if (Writing)
+				{
 					stream.write(toByte(*p)) || errorWrite;
+				}
 				else
 					stream.read(toByte(*varPtr)) || errorRead;
 			}
@@ -197,12 +216,16 @@ private:
 				auto arr = &aa.tupleof[0];
 
 				static if (Writing)
+				{
 					*arr = p.byKeyValue.map!(a => Pair(a.key, a.value)).array;
+				}
 
 				processElem(aa);
 
 				static if (Reading)
+				{
 					*p = map!(a => tuple(a.tupleof))(*arr).assocArray;
+				}
 			}
 			else static if (isArray!R)
 			{
@@ -219,7 +242,9 @@ private:
 					enum isRest = staticIndexOf!(ToTheEnd, attrs) >= 0;
 
 					static if (isRest)
+					{
 						static assert(name == Fields[$ - 1], Elem ~ ` is not the last field`);
+					}
 				}
 				else
 				{
@@ -265,7 +290,9 @@ private:
 				else
 				{
 					static if (isDyn)
+					{
 						static assert(isStr || isLen || isRest, `length is unknown for ` ~ Elem);
+					}
 					else
 						static assert(!(isLen || isRest), `specifying length is not allowed for a static array ` ~ Elem);
 				}
@@ -281,7 +308,9 @@ private:
 								assert(all!(a => !!a)(*p), `zero is found in zero-terminated string ` ~ Elem);
 
 								static if (isLen)
+								{
 									assert(p.length <= elemsCnt, `no space left in the buffer for string ` ~ Elem);
+								}
 							}
 						}
 
@@ -299,7 +328,9 @@ private:
 							stream.write(terminator.toByte) || errorWrite;
 
 							static if (isLen)
+							{
 								stream.wskip(elemsCnt - p.length - 1) || errorWSkip;
+							}
 						}
 					}
 					else
@@ -307,14 +338,18 @@ private:
 						static if (processAsString)
 						{
 							static if (!isLen)
+							{
 								auto elemsCnt = size_t.max;
+							}
 
 							stream.readstr(*varPtr, elemsCnt) || errorRead;
 
 							static if (isLen)
 							{
 								if (varPtr.length != elemsCnt)
+								{
 									stream.rskip(elemsCnt - p.length - 1) || errorRSkip;
+								}
 							}
 						}
 						else
@@ -338,7 +373,9 @@ private:
 					static if (Writing)
 					{
 						foreach (ref v; *p)
+						{
 							processElem(v);
+						}
 					}
 					else
 					{
@@ -364,7 +401,9 @@ private:
 							}
 							else
 								foreach (ref v; *varPtr)
+								{
 									processElem(v);
+								}
 						}
 					}
 				}

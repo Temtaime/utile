@@ -113,9 +113,9 @@ bool isTerminal(FILE* file)
 	return F(fileno(file)) && (file == stdout || file == stderr);
 }
 
-enum COLOR_BITS = 5;
-
 private:
+
+enum COLOR_BITS = 5;
 
 string genColors(string name, ubyte offset)
 {
@@ -192,15 +192,15 @@ enum OTHER_ATTRS = [
 		COMMON_LVB_UNDERSCORE
 	];
 
-ushort makeAttrs(ubyte fg, ubyte bg, ushort attrs)
+ushort makeAttrs(ubyte FG, ubyte BG, ushort attrs)
 {
 	enum ALL_OTHER_ATTRS = OTHER_ATTRS.reduce!((a, b) => a | b);
 
 	ushort result = attrs & ALL_OTHER_ATTRS;
 
-	static foreach (s; only(`fg`, `bg`))
+	static foreach (s; only(`FG`, `BG`))
 	{
-		mixin(`result |= ` ~ s ~ ` ? ` ~ s.toUpper ~ `_TABLE[` ~ s ~ `] : (attrs & ` ~ s.toUpper ~ `_TABLE.back);`);
+		mixin(`result |= ` ~ s ~ ` ? ` ~ s ~ `_TABLE[` ~ s ~ `] : (attrs & ` ~ s ~ `_TABLE.back);`);
 	}
 
 	return result;
