@@ -4,6 +4,7 @@ import std, core.atomic, core.sync.event, core.sync.mutex, core.thread, core.tim
 import utile_curl;
 
 public import utile.curl.job;
+public import utile.curl.browsers;
 public import utile.curl.requests;
 
 shared static this()

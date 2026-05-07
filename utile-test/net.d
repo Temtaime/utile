@@ -33,22 +33,22 @@ unittest
 
 	web.createClient = (conn, url, method) => new Client(conn, url, method);
 
-	auto j = r.makeJob(format!`http://127.0.0.1:%u/hehe`(PORT));
+	auto e = r.makeJob(format!`http://127.0.0.1:%u/hehe`(PORT));
 
-	for (scope ts = new ThreeSet; j.done == false;)
+	for (scope ts = new ThreeSet; !e.done;)
 	{
 		ts.reset;
 
 		r.fdset(ts);
 		web.fdset(ts);
 
-		ts.select(1.seconds);
+		ts.select(100.msecs);
 
 		r.run;
 		web.run(ts);
 	}
 
-	assert(j.isError == false);
-	assert(j.code == 200);
-	assert(j.data == `hello world`);
+	assert(!e.isError);
+	assert(e.code == 200);
+	assert(e.data == `hello world`);
 }

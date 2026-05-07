@@ -13,14 +13,8 @@ final class Job
 	{
 		_handle = curl_easy_init();
 
-		version (Posix)
 		{
-			auto c = curl_easy_impersonate(_handle, `chrome142`, 0);
-			checkError(true, c, `impersonate`);
-		}
-
-		{
-			static immutable ubyte zero;
+			ubyte zero;
 			option(CURLOPT_ACCEPT_ENCODING, &zero); // allow all encodings
 		}
 
@@ -45,11 +39,19 @@ final class Job
 		option(CURLOPT_HEADERDATA, this);
 		option(CURLOPT_HEADERFUNCTION, &headersFunc);
 
-		option(CURLOPT_NOPROGRESS, 0);
-		option(CURLOPT_XFERINFODATA, this);
-		option(CURLOPT_XFERINFOFUNCTION, &xferinfoFunc);
-
 		_changeTime = MonoTime.currTime;
+	}
+
+	void lowSpeed(uint speed, Duration time)
+	{
+		option(CURLOPT_LOW_SPEED_LIMIT, speed);
+		option(CURLOPT_LOW_SPEED_TIME, time.toSecs);
+	}
+
+	void impersonate(Browser b, bool impersonateHeaders)
+	{
+		auto c = curl_easy_impersonate(_handle, b.to!string.toStringz, impersonateHeaders);
+		checkError(true, c, `impersonate`);
 	}
 
 	void buffers(uint sz)
@@ -233,40 +235,6 @@ private:
 
 	extern (C) static
 	{
-		static int xferinfoFunc(void* clientp, curl_off_t, curl_off_t dnow, curl_off_t, curl_off_t unow)
-		{
-			auto self = cast(Job)clientp;
-
-			with (self)
-			{
-				bool ok = _upload != cast(uint)unow || _download != cast(uint)dnow;
-
-				if (ok)
-				{
-					_changeTime = MonoTime.currTime;
-
-					_upload = cast(uint)unow;
-					_download = cast(uint)dnow;
-				}
-				else
-				{
-					auto delay = MonoTime.currTime - _changeTime;
-
-					if (delay >= CONNECTION_IDLE_ABORT_TIME)
-					{
-						logger.error!`connection was idle for %s, aborting`(delay);
-
-						_isError = true;
-						_aborted = true;
-
-						return 1;
-					}
-				}
-			}
-
-			return 0;
-		}
-
 		size_t headersFunc(char* buffer, size_t size, size_t nitems, void* userdata)
 		{
 			assert(size == 1);
@@ -312,17 +280,20 @@ private:
 				}
 				else
 				{
-					auto key = s[0 .. idx].stripRight.dup;
-					key.toLowerInPlace;
+					auto key = s[0 .. idx]
+						.stripRight
+						.toLowerDup;
 
-					auto value = s[idx + 1 .. $].stripLeft.idup;
+					auto value = s[idx + 1 .. $]
+						.stripLeft
+						.idup;
 
 					if (key == `content-length`)
 					{
-						_contentLength = value.to!long;
+						_contentLength = value.to!ulong;
 					}
 
-					_responseHeaders[key.assumeUnique] = value;
+					_responseHeaders[key] = value;
 				}
 
 				return nitems;
