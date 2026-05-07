@@ -1,7 +1,9 @@
 module utile.log;
-import std.datetime, std.conv, std.range, std.string, std.algorithm, std.exception, core.stdc.stdio, utile.console;
 
-import utile.log.base, utile.log.sub;
+import std.datetime, std.conv, std.range, std.string, std.algorithm, std.exception, core.stdc.stdio, utile.console;
+import utile.log.base;
+
+public import utile.log.sub;
 
 abstract class Logger : LoggerBase
 {

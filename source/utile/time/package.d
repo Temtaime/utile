@@ -2,6 +2,7 @@ module utile.time;
 import core.time, std.datetime.stopwatch, utile;
 
 public import utile.time.app;
+public import utile.time.conv;
 public import utile.time.meter;
 public import utile.time.timer;
 

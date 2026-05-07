@@ -39,7 +39,7 @@ struct TimerFunc
 {
 	@disable this();
 
-	this(Duration delay, void delegate() func, bool once)
+	this(Duration delay, void delegate() func, bool once = true)
 	{
 		_func = func;
 		_once = once;
