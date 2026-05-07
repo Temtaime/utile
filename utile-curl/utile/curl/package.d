@@ -14,6 +14,11 @@ shared static this()
 	checkError(true, c, `global init`);
 }
 
+shared static ~this()
+{
+	curl_global_cleanup();
+}
+
 enum Alpn
 {
 	any = CURL_HTTP_VERSION_NONE,

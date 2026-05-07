@@ -1,11 +1,11 @@
 module utile.log.sub;
 
-import std.array, std.format, utile.log;
+import std.array, std.exception, std.format, utile.log;
 import utile.log.base;
 
 final class SubLogger : LoggerBase
 {
-	this(LoggerBase parent, string suffix)
+	this(LoggerBase parent, string suffix) nothrow
 	{
 		_parent = parent;
 		_suffix = suffix;
@@ -31,7 +31,7 @@ protected:
 			}
 		}
 
-		p.log(color, format!`[ %s ] %s`(sf, s));
+		p.log(color, format!`[ %s ] %s`(sf, s).assumeWontThrow); // FIXME: why format throws ?!
 	}
 
 private:

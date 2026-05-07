@@ -38,6 +38,7 @@ mixin(genColors(`Bg`, COLOR_BITS));
 
 struct Colorizer
 {
+nothrow:
 	this(FILE* stream, ushort color)
 	{
 		_stream = stream;
@@ -95,6 +96,8 @@ private:
 	ubyte _fg;
 	ubyte _bg;
 }
+
+nothrow:
 
 bool isTerminal(FILE* file)
 {
@@ -191,7 +194,9 @@ enum OTHER_ATTRS = [
 
 ushort makeAttrs(ubyte fg, ubyte bg, ushort attrs)
 {
-	ushort result = attrs & OTHER_ATTRS.reduce!((a, b) => a | b);
+	enum ALL_OTHER_ATTRS = OTHER_ATTRS.reduce!((a, b) => a | b);
+
+	ushort result = attrs & ALL_OTHER_ATTRS;
 
 	static foreach (s; only(`fg`, `bg`))
 	{

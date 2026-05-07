@@ -1,5 +1,5 @@
 module utile.log;
-import std.datetime, std.conv, std.range, std.string, std.algorithm, core.stdc.stdio, utile.console;
+import std.datetime, std.conv, std.range, std.string, std.algorithm, std.exception, core.stdc.stdio, utile.console;
 
 import utile.log.base, utile.log.sub;
 
@@ -12,9 +12,10 @@ abstract class Logger : LoggerBase
 			string time = Clock
 				.currTime
 				.toISOExtString(0)
-				.replace('T', ' ');
+				.replace('T', ' ')
+				.assumeWontThrow;
 
-			write(0, format!`[%s] `(time));
+			write(0, format!`[%s] `(time).assumeWontThrow); // FIXME: why format throws ?!
 		}
 
 		write(color, s);
@@ -22,7 +23,7 @@ abstract class Logger : LoggerBase
 
 	bool timeOutput; // Whether to output time in log messages
 protected:
-	abstract void write(ushort color, string s);
+	abstract void write(ushort color, string s) nothrow;
 }
 
 final class ConsoleLogger : Logger

@@ -1,11 +1,11 @@
 module utile.log.base;
 
-import core.stdc.stdio, std.format, std.conv, utile.console;
+import core.stdc.stdio, std.format, std.exception, std.conv, utile.console;
 import utile.log.sub;
 
 abstract class LoggerBase
 {
-	final
+	final nothrow
 	{
 		mixin(makeFunc(`info`, `green`));
 		mixin(makeFunc(`info2`, `magenta`));
@@ -20,13 +20,13 @@ abstract class LoggerBase
 		SubLogger makeChild(string suffix) => new SubLogger(this, suffix);
 	}
 
-	abstract void log(ushort color, string s);
+	abstract void log(ushort color, string s) nothrow;
 private:
 	static makeFunc(string name, string color)
 	{
 		string s;
-		s ~= `void ` ~ name ~ `(T)(T value) => log(Fg.` ~ color ~ `, value.to!string);`;
-		s ~= `void ` ~ name ~ `(string F, A...)(A args) => log(Fg.` ~ color ~ `, format!F(args));`;
+		s ~= `void ` ~ name ~ `(T)(T value) => log(Fg.` ~ color ~ `, value.to!string.assumeWontThrow);`;
+		s ~= `void ` ~ name ~ `(string F, A...)(A args) => log(Fg.` ~ color ~ `, format!F(args)).assumeWontThrow;`; // FIXME: why format throws ?!
 		return s;
 	}
 }
