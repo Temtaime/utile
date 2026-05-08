@@ -45,7 +45,7 @@ package:
 		collect(_cookies, MHD_COOKIE_KIND, `cookies`);
 		collect(_query, MHD_GET_ARGUMENT_KIND, `query parameters`);
 
-		restoreIP(ipHeader);
+		restoreIP(ipHeader, parent);
 
 		logger = new SubLogger(parent, _addr.toString);
 	}
@@ -55,7 +55,7 @@ package:
 		MHD_get_connection_values_n(_conn, kind, &collectHeaders, toVoid(&aa)) >= 0 || throwError!`failed to collect %s`(msg);
 	}
 
-	void restoreIP(string header)
+	void restoreIP(string header, SubLogger l)
 	{
 		auto info = MHD_get_connection_info(_conn, MHD_CONNECTION_INFO_CLIENT_ADDRESS);
 		assert(info);
@@ -81,7 +81,7 @@ package:
 			}
 			catch (Exception e)
 			{
-				logger.error!`failed to parse IP address: %s, error: %s`(s, e.msg);
+				l.error!`failed to parse IP address: %s, error: %s`(s, e.msg);
 			}
 		}
 	}
