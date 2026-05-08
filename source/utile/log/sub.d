@@ -7,31 +7,31 @@ final class SubLogger : LoggerBase
 {
 	this(LoggerBase parent, string suffix) nothrow
 	{
-		_parent = parent;
-		_suffix = suffix;
+		if (auto r = cast(SubLogger)parent)
+		{
+			if (r._parent)
+			{
+				_suffix = r._suffix ~ ` / ` ~ suffix;
+				_parent = r._parent;
+			}
+
+			return;
+		}
+
+		if (parent)
+		{
+			_parent = parent;
+			_suffix = suffix;
+		}
 	}
 
 protected:
 	override void log(ushort color, string s)
 	{
-		string sf = _suffix;
-		LoggerBase p = _parent;
-
-		while (true)
+		if (_parent)
 		{
-			auto r = cast(SubLogger)p;
-
-			if (r is null)
-				break;
-
-			with (r)
-			{
-				sf = _suffix ~ ` / ` ~ sf;
-				p = _parent;
-			}
+			_parent.log(color, format!`[ %s ] %s`(_suffix, s).assumeWontThrow); // FIXME: why format throws ?!
 		}
-
-		p.log(color, format!`[ %s ] %s`(sf, s).assumeWontThrow); // FIXME: why format throws ?!
 	}
 
 private:

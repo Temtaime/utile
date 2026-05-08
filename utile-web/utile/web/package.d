@@ -1,13 +1,14 @@
 module utile.web;
 
-import std, utile, utile.net;
+import std.datetime, std.string, std.functional, utile, utile.net;
 import utile_microhttpd;
 
-public import utile.web.client;
+public import utile.web.handler;
+public import utile.web.connection;
 
-class WebServer
+final class WebServer
 {
-	this(ushort port, Duration connectionTimeout)
+	this(ushort port, Duration connectionTimeout, Logger parent)
 	{
 		_daemon = MHD_start_daemon(
 			MHD_USE_ERROR_LOG | MHD_USE_NO_THREAD_SAFETY,
@@ -21,6 +22,9 @@ class WebServer
 		);
 
 		_daemon || throwError!`failed to start HTTP daemon on port %u`(port);
+		_logger = new SubLogger(parent, format!`HTTP:%u`(port));
+
+		routes[null][null] = toDelegate(&createHandler404);
 	}
 
 	~this()
@@ -42,9 +46,42 @@ class WebServer
 		ts.maxFd = cast(int)fd;
 	}
 
-	nothrow WebClient delegate(void* conn, string url, string method) createClient;
-private:
+	void headerIP(string header)
+	{
+		_ipHeader = header.toLower;
+	}
+
+	//
+	// routes[`/hello`][`GET`] = (conn) => new MyWebHandler(conn);
+	//
+	nothrow WebHandler delegate(WebConnection)[string][string] routes;
+package:
 	alias F = utile_microhttpd.fd_set;
+
+	auto find(string method, string url) nothrow
+	{
+		if (auto h = url in routes)
+		{
+			if (auto m = method in *h) // exact match
+			{
+				return *m;
+			}
+
+			return (*h)[null]; // URL match
+		}
+
+		auto h = routes[null];
+
+		if (auto m = method in h) // method match
+		{
+			return *m;
+		}
+
+		return h[null]; // default
+	}
+
+	string _ipHeader;
+	SubLogger _logger;
 
 	MHD_Daemon* _daemon;
 }

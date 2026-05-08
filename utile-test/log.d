@@ -23,10 +23,10 @@ unittest
 
 unittest
 {
-	auto child = logger.makeChild(`a`);
+	auto child = new SubLogger(logger, `a`);
 	child.info(`message from child`);
 
-	auto grandchild = child.makeChild(`b`);
+	auto grandchild = new SubLogger(child, `b`);
 	grandchild.info(`message from grandchild`);
 
 	logger.info(`message from root`);

@@ -1,0 +1,174 @@
+module utile.web.handler;
+
+import std.datetime, std.string, std.socket, utile, utile.web;
+
+import utile_microhttpd;
+
+abstract class WebHandler
+{
+	this(WebConnection conn_) nothrow
+	{
+		conn = conn_;
+	}
+
+	void onCreate()
+	{
+	}
+
+	abstract void onResponse();
+
+	void onComplete()
+	{
+	}
+
+	// used for chunked responses
+	int onSend(ulong pos, ubyte[] chunk)
+	{
+		assert(false);
+	}
+
+	// used for receiving request body
+	void onReceive(in ubyte[] chunk)
+	{
+	}
+
+	WebConnection conn;
+}
+
+final class HandlerErrorCode : WebHandler
+{
+	this(WebConnection conn, ushort code, string msg) nothrow
+	{
+		super(conn);
+
+		_msg = msg;
+		_code = code;
+	}
+
+	override void onResponse() => conn.send(_code, _msg);
+private:
+	string _msg;
+	ushort _code;
+}
+
+nothrow:
+
+auto createHandler404(WebConnection conn) => new HandlerErrorCode(conn, 404, `Not Found`);
+auto createHandler500(WebConnection conn) => new HandlerErrorCode(conn, 500, `Internal Server Error`);
+
+static extern (C):
+
+ptrdiff_t cbReader(void* cls, ulong pos, char* buf, size_t max)
+{
+	auto handler = cast(WebHandler)cls;
+	auto l = handler.conn.logger;
+
+	try
+	{
+		return handler.onSend(pos, buf[0 .. max].toByte);
+	}
+	catch (Exception e)
+	{
+		l.error!`onSend failed: %s`(e.msg);
+
+		return MHD_CONTENT_READER_END_WITH_ERROR;
+	}
+}
+
+void cbReaderEnd(void* cls)
+{
+}
+
+void completeRequest(void* cls, MHD_Connection* connection, void** req_cls, MHD_RequestTerminationCode toe)
+{
+	auto handler = cast(WebHandler)*req_cls;
+	auto l = handler.conn.logger;
+
+	try
+	{
+		handler.onComplete;
+	}
+	catch (Exception e)
+	{
+		l.error!`onComplete failed: %s`(e.msg);
+	}
+
+	gcMark(handler, false);
+	gcNoMove(handler, false);
+
+	l.info2!`completed with code %s`(toe);
+}
+
+MHD_Result createResponse(
+	void* cls,
+	MHD_Connection* connection,
+	const(char)* url,
+	const(char)* method,
+	const(char)* version_,
+	const(char)* upload_data,
+	size_t* upload_data_size,
+	void** req_cls)
+{
+	auto handler = cast(WebHandler)*req_cls;
+
+	if (handler)
+	{
+		auto l = handler.conn.logger;
+
+		try
+		{
+			if (*upload_data_size)
+			{
+				handler.onReceive(upload_data[0 .. *upload_data_size].toByte);
+				*upload_data_size = 0;
+			}
+			else
+			{
+				handler.onResponse;
+			}
+
+			return MHD_YES;
+		}
+		catch (Exception e)
+		{
+			l.error!`request handling failed: %s`(e.msg);
+			return MHD_NO;
+		}
+	}
+
+	with (cast(WebServer)cls)
+	{
+		WebConnection conn;
+
+		try
+		{
+			conn = new WebConnection(connection, url.fromStringz.idup, method.fromStringz.idup);
+			conn.initialize(_ipHeader, _logger);
+		}
+		catch (Exception e)
+		{
+			_logger.error!`failed to initialize connection: %s`(e.msg);
+			return MHD_NO;
+		}
+
+		auto l = conn.logger;
+		auto h = find(conn.method, conn.url)(conn);
+
+		try
+		{
+			h.onCreate;
+		}
+		catch (Exception e)
+		{
+			l.error!`handler onCreate failed: %s`(e.msg);
+			h = createHandler500(conn);
+		}
+
+		gcMark(h, true);
+		gcNoMove(h, true);
+
+		*req_cls = h.toVoid;
+	}
+
+	return MHD_YES;
+}

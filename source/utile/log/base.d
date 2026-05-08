@@ -16,8 +16,6 @@ abstract class LoggerBase
 
 		mixin(makeFunc(`dbg`, `blue`));
 		mixin(makeFunc(`msg`, `white`));
-
-		SubLogger makeChild(string suffix) => new SubLogger(this, suffix);
 	}
 
 	abstract void log(ushort color, string s) nothrow;

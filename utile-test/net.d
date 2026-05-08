@@ -1,50 +1,64 @@
-import std, utile.net, utile.curl, utile.web;
+import std, utile.log, utile.net, utile.curl, utile.web;
 
 enum PORT = 23_769;
 
-final class Client : WebClient
+final class Handler : WebHandler
 {
-	this(void* conn, string url, string method) nothrow
+	this(WebConnection conn) nothrow
 	{
-		super(conn, url, method);
-
-		assert(url == `/hehe`);
-		assert(method == `GET`);
+		super(conn);
 	}
 
 	override void onCreate()
 	{
+		assert(conn.url == `/hehe`);
+		assert(conn.method == `GET`);
+		assert(conn.addr.toAddrString == `1.1.1.1`);
+
+		assert(conn.query[`foo`] == `bar`);
+		assert(conn.cookies[`cookie`] == `chocolate`);
+
+		conn.logger.info!`handler created: %s`(conn.url);
 	}
 
 	override void onResponse()
 	{
-		send(200, `hello world`);
+		conn.send(200, `hello world`);
+
+		conn.logger.info!`handler responded: %s`(conn.url);
 	}
 
 	override void onComplete()
 	{
+		conn.logger.info!`handler completed: %s`(conn.url);
 	}
 }
 
 unittest
 {
-	scope r = new Requests;
-	scope web = new WebServer(PORT, 10.seconds);
+	scope req = new Requests;
+	scope web = new WebServer(PORT, 10.seconds, logger);
 
-	web.createClient = (conn, url, method) => new Client(conn, url, method);
+	web.headerIP = `X-Forwarded-For`;
+	web.routes[`/hehe`][`GET`] = (conn) => new Handler(conn);
 
-	auto e = r.makeJob(format!`http://127.0.0.1:%u/hehe`(PORT));
+	auto e = req.makeJob(format!`http://127.0.0.1:%u/hehe?foo=bar`(PORT));
+
+	auto aa = [`cookie`: `chocolate`];
+	e.cookies(aa);
+
+	e.header(`X-Forwarded-For`, `1.1.1.1`);
 
 	for (scope ts = new ThreeSet; !e.done;)
 	{
 		ts.reset;
 
-		r.fdset(ts);
+		req.fdset(ts);
 		web.fdset(ts);
 
 		ts.select(100.msecs);
 
-		r.run;
+		req.run;
 		web.run(ts);
 	}
 

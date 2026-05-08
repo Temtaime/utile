@@ -13,11 +13,7 @@ final class Updater
 		_delay = delay;
 
 		_helpers = new UpdaterHelpers;
-
-		if (parent)
-		{
-			_logger = parent.makeChild(`updater`);
-		}
+		_logger = new SubLogger(parent, `updater`);
 
 		_func = TimerFunc(Duration.init, &onRequest);
 	}
@@ -35,10 +31,7 @@ private:
 	{
 		if (j.isError)
 		{
-			if (_logger)
-			{
-				_logger.error!`update failed with code %u`(j.code);
-			}
+			_logger.error!`update failed with code %u`(j.code);
 
 			_func = TimerFunc(RETRY_DELAY, &onRequest);
 			return true;
@@ -54,10 +47,7 @@ private:
 		job.method = Method.head;
 		job.onComplete = &onReceiveHeaders;
 
-		if (_logger)
-		{
-			_logger.info!`checking for updates ...`;
-		}
+		_logger.info!`checking for updates ...`;
 	}
 
 	void onReceiveHeaders(Job job)
@@ -73,10 +63,7 @@ private:
 
 		if (_helpers.isNewer(time))
 		{
-			if (_logger)
-			{
-				_logger.info3!`update is available, downloading ...`;
-			}
+			_logger.info3!`update is available, downloading ...`;
 
 			job = _req.makeJob(_url);
 			job.onComplete = &onReceiveData;
@@ -85,11 +72,7 @@ private:
 		{
 			_func = TimerFunc(_delay, &onRequest);
 
-			if (_logger)
-			{
-				_logger.info2!`no update is available`;
-			}
-
+			_logger.info2!`no update is available`;
 			_isVersionActual = true;
 		}
 	}

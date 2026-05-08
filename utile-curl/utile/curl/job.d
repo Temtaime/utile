@@ -71,6 +71,25 @@ final class Job
 		option(CURLOPT_HTTPHEADER, _headers);
 	}
 
+	void cookies(string[string] aa)
+	{
+		string s;
+
+		foreach (k, ref v; aa)
+		{
+			if (s.length)
+			{
+				s ~= ';';
+			}
+
+			auto p = curl_easy_escape(_handle, v.ptr, cast(uint)v.length);
+			s ~= format!`%s=%s`(k, p.fromStringz);
+			curl_free(p);
+		}
+
+		option(CURLOPT_COOKIE, s.toStringz);
+	}
+
 	void etag(string etag)
 	{
 		header(`If-Match`, etag);
