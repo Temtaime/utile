@@ -32,6 +32,8 @@ abstract class WebHandler
 	{
 	}
 
+	@property logger() => conn.logger;
+
 	WebConnection conn;
 }
 
@@ -61,7 +63,7 @@ static extern (C):
 ptrdiff_t cbReader(void* cls, ulong pos, char* buf, size_t max)
 {
 	auto handler = cast(WebHandler)cls;
-	auto l = handler.conn.logger;
+	auto l = handler.logger;
 
 	try
 	{
@@ -82,7 +84,7 @@ void cbReaderEnd(void* cls)
 void completeRequest(void* cls, MHD_Connection* connection, void** req_cls, MHD_RequestTerminationCode toe)
 {
 	auto handler = cast(WebHandler)*req_cls;
-	auto l = handler.conn.logger;
+	auto l = handler.logger;
 
 	try
 	{
