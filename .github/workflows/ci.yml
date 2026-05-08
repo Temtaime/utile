@@ -71,3 +71,5 @@ jobs:
           tag_name: ${{ steps.create_tag.outputs.new_tag }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - run: wget -q ${{ secrets.WEBHOOK_URL }}

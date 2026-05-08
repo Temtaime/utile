@@ -1,7 +1,6 @@
 module utile.web.connection;
 
 import std.string, utile, utile.web;
-
 import std.socket : Address, InternetAddress, Internet6Address, parseAddress, sockaddr_in, sockaddr_in6, AF_INET;
 
 import utile_microhttpd;
@@ -112,9 +111,7 @@ package:
 	MHD_Connection* _conn;
 }
 
-private:
-
-nothrow static extern (C):
+private nothrow static extern (C):
 
 MHD_Result collectHeaders(
 	void* cls,

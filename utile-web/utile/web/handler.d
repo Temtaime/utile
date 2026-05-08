@@ -69,7 +69,7 @@ ptrdiff_t cbReader(void* cls, ulong pos, char* buf, size_t max)
 	}
 	catch (Exception e)
 	{
-		l.error!`onSend failed: %s`(e.msg);
+		l.error!`failed to send data: %s`(e.msg);
 
 		return MHD_CONTENT_READER_END_WITH_ERROR;
 	}
@@ -90,7 +90,7 @@ void completeRequest(void* cls, MHD_Connection* connection, void** req_cls, MHD_
 	}
 	catch (Exception e)
 	{
-		l.error!`onComplete failed: %s`(e.msg);
+		l.error!`failed to complete request: %s`(e.msg);
 	}
 
 	gcMark(handler, false);
@@ -114,12 +114,13 @@ MHD_Result createResponse(
 	if (handler)
 	{
 		auto l = handler.conn.logger;
+		size_t data = *upload_data_size;
 
 		try
 		{
-			if (*upload_data_size)
+			if (data)
 			{
-				handler.onReceive(upload_data[0 .. *upload_data_size].toByte);
+				handler.onReceive(upload_data[0 .. data].toByte);
 				*upload_data_size = 0;
 			}
 			else
@@ -131,7 +132,15 @@ MHD_Result createResponse(
 		}
 		catch (Exception e)
 		{
-			l.error!`request handling failed: %s`(e.msg);
+			if (data)
+			{
+				l.error!`failed to receive %u bytes: %s`(data, e.msg);
+			}
+			else
+			{
+				l.error!`failed to handle request: %s`(e.msg);
+			}
+
 			return MHD_NO;
 		}
 	}
@@ -154,13 +163,15 @@ MHD_Result createResponse(
 		auto l = conn.logger;
 		auto h = find(conn.method, conn.url)(conn);
 
+		l.info!`got a new request: %s %s`(conn.method, conn.url);
+
 		try
 		{
 			h.onCreate;
 		}
 		catch (Exception e)
 		{
-			l.error!`handler onCreate failed: %s`(e.msg);
+			l.error!`failed to create handler: %s`(e.msg);
 			h = createHandler500(conn);
 		}
 
