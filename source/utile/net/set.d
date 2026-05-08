@@ -2,6 +2,13 @@ module utile.net.set;
 
 import std.datetime, core.sys.posix.sys.select, core.sys.windows.winsock2, core.stdc.errno, utile.except;
 
+enum OpIndex
+{
+	read,
+	write,
+	except
+}
+
 final class ThreeSet
 {
 	this()
@@ -14,7 +21,7 @@ final class ThreeSet
 		int result;
 
 		{
-			auto vals = timeout.split!(`seconds`, `usecs`)();
+			auto vals = timeout.split!(`seconds`, `usecs`);
 
 			timeval tv;
 			tv.tv_sec = cast(uint)vals.seconds;
@@ -28,18 +35,18 @@ final class ThreeSet
 			return;
 		}
 
+		bool isOK;
+
 		version (Windows)
 		{
-			if (WSAGetLastError() == WSAEINTR)
-				return;
+			isOK = WSAGetLastError() == WSAEINTR;
 		}
 		else
 		{
-			if (errno == EINTR)
-				return;
+			isOK = errno == EINTR;
 		}
 
-		throwError!`select failed`;
+		isOK || throwError!`select failed`;
 	}
 
 	void reset()
@@ -57,6 +64,12 @@ final class ThreeSet
 		{
 			_maxFd = fd;
 		}
+	}
+
+	void add(OpIndex idx, int fd)
+	{
+		maxFd = fd;
+		FD_SET(fd, _sets.ptr + idx);
 	}
 
 	auto rp(alias F = fd_set)() => cast(F*)&_sets[0];

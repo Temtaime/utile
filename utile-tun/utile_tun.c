@@ -65,7 +65,7 @@ ifreq make(const char* name)
 
 #define CHECKED(req, arg, msg) if(ioctl(fd, req, &arg) < 0) return msg;
 
-const char* setup_device(int fd, const char* name, bool udpOffload)
+const char* setup_device(int fd, const char* name, bool udp)
 {
 	ifreq e = make(name);
 
@@ -89,7 +89,7 @@ const char* setup_device(int fd, const char* name, bool udpOffload)
 
 		flags |= TUN_F_TSO4 | TUN_F_TSO6;
 
-		if(udpOffload)
+		if(udp)
 		{
 			flags |= TUN_F_USO4 | TUN_F_USO6;
 		}

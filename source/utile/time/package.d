@@ -6,6 +6,8 @@ public import utile.time.conv;
 public import utile.time.meter;
 public import utile.time.timer;
 
+nothrow:
+
 uint systemTick()
 {
 	return cast(uint)(MonoTime.currTime.ticks * 1000 / MonoTime.ticksPerSecond);

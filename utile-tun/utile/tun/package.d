@@ -1,9 +1,7 @@
 module utile.tun;
 import std, utile, core.stdc.errno;
 
-import utile.tun.linux;
-
-//version = DEBUG_TUN;
+public import utile.tun.linux;
 
 enum MIN_PACKET = 20;
 enum MAX_PACKET = ushort.max;
@@ -26,16 +24,4 @@ interface TunDevice
 	void write(Blob data);
 
 	void configure(TunSettings s);
-}
-
-TunDevice createTunDevice(string name)
-{
-	version (linux)
-	{
-		return new LinuxTunDevice(name);
-	}
-	else
-	{
-		assert(false);
-	}
 }

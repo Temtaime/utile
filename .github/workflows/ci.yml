@@ -72,4 +72,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - run: curl -s -X POST ${{ secrets.WEBHOOK_URL }}
+      #- run: curl -s -X POST ${{ secrets.WEBHOOK_URL }}
