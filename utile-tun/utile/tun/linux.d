@@ -10,12 +10,12 @@ version (linux)
 
 final class LinuxTunDevice : TunDevice
 {
-	this(string name, Logger logger)
+	this(string name, Logger parent)
 	{
 		_name = name;
-		_logger = new SubLogger(logger, _name);
 
-		_logger.info!`creating tun ...`;
+		logger = new SubLogger(parent, _name);
+		logger.info!`creating tun ...`;
 
 		version (linux)
 		{
@@ -31,7 +31,7 @@ final class LinuxTunDevice : TunDevice
 
 	~this()
 	{
-		_logger.info!`tun shutting down ...`;
+		logger.info!`tun shutting down ...`;
 
 		version (linux)
 		{
@@ -46,7 +46,7 @@ final class LinuxTunDevice : TunDevice
 			return;
 		}
 
-		_logger.info!`configuring: MTU %u, IP %s/%u`(s.mtu, s.ip.ipToString, s.prefix);
+		logger.info!`configuring: MTU %u, IP %s/%u`(s.mtu, s.ip.ipToString, s.prefix);
 
 		version (linux)
 		{
@@ -59,7 +59,7 @@ final class LinuxTunDevice : TunDevice
 
 	void write(const(ubyte)[] data)
 	{
-		_logger.dbg!`writing %u bytes`(data.length);
+		logger.dbg!`writing %u bytes`(data.length);
 
 		version (linux)
 		{
@@ -79,7 +79,7 @@ final class LinuxTunDevice : TunDevice
 				return null;
 			}
 
-			_logger.dbg!`read %u bytes`(bytesRead);
+			logger.dbg!`read %u bytes`(bytesRead);
 
 			assert(bytesRead >= MIN_FRAME && bytesRead <= MAX_FRAME);
 
@@ -92,13 +92,14 @@ final class LinuxTunDevice : TunDevice
 	}
 
 	mixin IpUtil;
+
+	SubLogger logger;
 private:
 	mixin publicProperty!(int, `fd`);
 
 	string _name;
 	TunSettings _s;
 
-	SubLogger _logger;
 	ubyte[MAX_FRAME + 1] _buf; // extra space to be able to detect if packet is too big for buffer
 }
 
@@ -113,7 +114,7 @@ mixin template IpUtil()
 			auto s = ip.ipToString;
 			auto cmd = [`ip`, `addr`, `add`, s ~ `/` ~ prefix.to!string, `dev`, _name];
 
-			_logger.info2!`adding IP %s/%u`(s, prefix);
+			logger.info2!`adding IP %s/%u`(s, prefix);
 
 			auto result = execute(cmd);
 			result.status && throwError!`failed to add IP %s to %s: %s`(s, _name, result.output);
@@ -125,7 +126,7 @@ mixin template IpUtil()
 		auto tableStr = table.to!string;
 		auto markStr = value.to!string;
 
-		_logger.info2!`setting up fwmark %u for table %u`(value, table);
+		logger.info2!`setting up fwmark %u for table %u`(value, table);
 
 		// clean table
 		[`ip`, `route`, `flush`, `table`, tableStr].execute;

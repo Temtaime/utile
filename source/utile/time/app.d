@@ -11,6 +11,7 @@ shared static this()
 
 struct AppTime
 {
+nothrow:
 	void update()
 	{
 		_now = MonoTime.currTime;
@@ -22,6 +23,7 @@ private:
 
 struct AppTimeMeter
 {
+nothrow:
 	static init() => AppTimeMeter(appTime.now);
 
 	auto elapsed() => appTime.now - _start;

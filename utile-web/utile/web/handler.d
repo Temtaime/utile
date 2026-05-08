@@ -55,6 +55,7 @@ private:
 
 nothrow:
 
+auto createHandler403(WebConnection conn) => new HandlerErrorCode(conn, 403, `Forbidden`);
 auto createHandler404(WebConnection conn) => new HandlerErrorCode(conn, 404, `Not Found`);
 auto createHandler500(WebConnection conn) => new HandlerErrorCode(conn, 500, `Internal Server Error`);
 

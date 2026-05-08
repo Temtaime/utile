@@ -6,6 +6,7 @@ struct AppTimer
 {
 	@disable this();
 
+nothrow:
 	this(Duration delay)
 	{
 		_delay = delay;
@@ -39,7 +40,7 @@ struct TimerFunc
 {
 	@disable this();
 
-	this(Duration delay, void delegate() func, bool once = true)
+	this(Duration delay, void delegate() func, bool once = true) nothrow
 	{
 		_func = func;
 		_once = once;
