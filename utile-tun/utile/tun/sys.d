@@ -11,9 +11,9 @@ bool tunWrite(int fd, in void[] data)
 {
 	while (true)
 	{
-		int written = write(fd, data.ptr, data.length);
+		auto written = write(fd, data.ptr, data.length);
 
-		if (written == size)
+		if (written == data.length)
 		{
 			return true;
 		}
@@ -30,9 +30,9 @@ bool tunWrite(int fd, in void[] data)
 	}
 }
 
-int tunRead(int fd, void* data, size_t size)
+int tunRead(int fd, void[] data)
 {
-	return read(fd, data, size);
+	return read(fd, data.ptr, data.length);
 }
 
 void tunClose(int fd)
