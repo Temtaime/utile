@@ -19,11 +19,8 @@ final class LinuxTunDevice : TunDevice
 
 		version (linux)
 		{
-			_fd = open_tun;
-			_fd >= 0 || throwError!`failed to access tun device`;
-
-			auto err = setup_device(_fd, _name.toStringz, false);
-			err && throwError(err.fromStringz);
+			_fd = tunOpen;
+			createTun(_fd, _name, false);
 		}
 		else
 			assert(false);
@@ -35,7 +32,7 @@ final class LinuxTunDevice : TunDevice
 
 		version (linux)
 		{
-			close_tun(_fd);
+			tunClose(_fd);
 		}
 	}
 
@@ -50,8 +47,7 @@ final class LinuxTunDevice : TunDevice
 
 		version (linux)
 		{
-			auto err = configure_tun(_name.toStringz, s.mtu, s.ip, prefixToNetmask(s.prefix));
-			err && throwError(err.fromStringz);
+			configureTun(_name, s.ip, prefixToNetmask(s.prefix), s.mtu);
 		}
 
 		_s = s;

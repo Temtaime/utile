@@ -2,15 +2,12 @@ module utile.tun.sys;
 
 version (linux)  :  // formatter bug
 
+enum TUN_DEVICE = `/dev/net/tun`;
+
 import utile.except;
 import utile_tun;
 
-int open_tun()
-{
-	return open("/dev/net/tun", O_RDWR | O_NONBLOCK);
-}
-
-bool write_tun(int fd, const void* data, size_t size)
+void tunWrite(int fd, const void* data, size_t size)
 {
 	while (true)
 	{
@@ -18,129 +15,120 @@ bool write_tun(int fd, const void* data, size_t size)
 
 		if (written == size)
 		{
-			return true;
+			return;
 		}
 
-		if (errno != EAGAIN)
-		{
-			return false;
-		}
+		errno == EAGAIN || thrownError!`write failed with error %d`(errno);
 
-		timespec ts = {0, 500 * 1000}; // 500 microseconds
-		nanosleep(&ts, nullptr);
+		timespec ts;
+		ts.tv_nsec = 500 * 1000; // 500 microseconds
+
+		nanosleep(&ts, null);
 	}
 }
 
-int read_tun(int fd, void* data, size_t size)
+int tunRead(int fd, void* data, size_t size)
 {
 	return read(fd, data, size);
 }
 
-void close_tun(int fd)
+void tunClose(int fd)
 {
 	close(fd);
 }
 
-ifreq make(const char* name)
+int tunOpen()
 {
-	ifreq e;
-
-	strncpy(e.ifrn_name, name, IFNAMSIZ);
-
-	return e;
+	int fd = open(TUN_DEVICE, O_RDWR | O_NONBLOCK);
+	fd >= 0 || throwError!`failed to open %s`(TUN_DEVICE);
+	return fd;
 }
 
-void setup_device(int fd, const char* name, bool udp)
+void createTun(int fd, string name, bool udp)
 {
-	ifreq e = make(name);
+	ifreq e = makeIfr(name);
 
-	void do_(A)(uint req, ref A arg, string msg)
+	with (e.ifr_ifru)
 	{
-		ioctl(fd, req, &arg) >= 0 || throwError(msg);
+		ifru_flags = IFF_TUN | IFF_NO_PI | IFF_VNET_HDR;
 	}
 
-	// create tun device with vnet header and no packet info
-	{
-		e.ifru_flags = IFF_TUN | IFF_NO_PI | IFF_VNET_HDR;
+	ioctl(fd, _TUNSETIFF, &e) >= 0 || throwError!`failed to create TUN device with name %s`(name);
 
-		do_(TUNSETIFF, e, "failed to create tun device");
-	}
-
-	// set vnet header size
 	{
 		uint vnetHdrSize = VNET_HEADER_SIZE;
 
-		do_(TUNSETVNETHDRSZ, vnetHdrSize, "failed to set vnet header size");
+		ioctl(fd, _TUNSETVNETHDRSZ, &vnetHdrSize) >= 0 || throwError!`failed to set VNET header size`;
 	}
 
-	// enable offload features
 	{
-		uint flags = TUN_F_CSUM | TUN_F_TSO_ECN;
+		uint flags = _TUN_F_CSUM | _TUN_F_TSO_ECN; // enable checksum and ECN support for TSO
 
-		flags |= TUN_F_TSO4 | TUN_F_TSO6;
+		// Enable TSO4 and TSO6 offloading
+		flags |= _TUN_F_TSO4 | _TUN_F_TSO6;
 
 		if (udp)
 		{
-			flags |= TUN_F_USO4 | TUN_F_USO6;
+			flags |= _TUN_F_USO4 | _TUN_F_USO6;
 		}
 
-		do_(TUNSETOFFLOAD, flags, "failed to enable offload features");
+		ioctl(fd, _TUNSETOFFLOAD, flags) >= 0 || throwError!`failed to enable offload features, error %d`(errno);
 	}
-
-	return nullptr;
 }
 
-void configure_tun(const char* name, uint32_t mtu, uint32_t ip, uint32_t mask)
+void configureTun(string name, uint ip, ubyte prefix, ushort mtu)
 {
-	int sock = socket(AF_INET, SOCK_DGRAM, 0);
-	sock >= 0 || throwError!`failed to create socket`;
+	int sock = socket(_AF_INET, SOCK_DGRAM, 0);
+	sock >= 0 || throwError!`failed to create socket for TUN configuration`;
 
 	scope (exit)
 	{
 		close(sock);
 	}
 
-	void do_(A)(uint req, string msg)
+	auto e = makeIfr(name);
+
+	with (e.ifr_ifru)
 	{
-		ioctl(sock, req, &e) >= 0 || throwError(msg);
+		// MTU
+		ifru_mtu = mtu;
+		doIoctl(sock, SIOCSIFMTU, &e);
+
+		// IPv4 address
+		*cast(sockaddr_in*)&ifru_addr = sockaddr_in(_AF_INET, 0, in_addr(ip));
+
+		doIoctl(sock, SIOCSIFADDR, &e);
+
+		// Netmask
+		*cast(sockaddr_in*)&ifru_netmask = sockaddr_in(_AF_INET, 0, in_addr(prefixToNetmask(prefix)));
+
+		doIoctl(sock, SIOCSIFNETMASK, &e);
+
+		// UP flag
+		doIoctl(sock, SIOCGIFFLAGS, &e); // Need to re-fetch flags first.
+
+		ifru_flags |= IFF_UP;
+
+		doIoctl(sock, SIOCSIFFLAGS, &e);
+	}
+}
+
+private:
+
+void doIoctl(int fd, int op, void* arg)
+{
+	ioctl(fd, op, arg) >= 0 || throwError!`ioctl %d failed with error %d`(op, errno);
+}
+
+auto makeIfr(string name)
+{
+	ifreq ifr;
+
+	with (ifr.ifr_ifrn)
+	{
+		ifrn_name[0 .. name.length] = name[];
+		ifrn_name[name.length] = 0;
 	}
 
-	ifreq e = make(name);
-
-	// MTU
-	{
-		e.ifru_mtu = mtu;
-
-		do_(SIOCSIFMTU, "failed to set MTU");
-	}
-
-	// IPv4 address
-	{
-		auto sin = cast(sockaddr_in*)&e.ifru_addr;
-
-		sin.sin_family = AF_INET;
-		sin.sin_addr = in_addr(ip);
-
-		do_(SIOCSIFADDR, "failed to set IP address");
-	}
-
-	// netmask
-	{
-		auto sin = cast(sockaddr_in*)&e.ifru_netmask;
-
-		sin.sin_family = AF_INET;
-		sin.sin_addr = in_addr(mask);
-
-		do_(SIOCSIFNETMASK, "failed to set netmask");
-	}
-
-	// UP flag
-	{
-		// we need to get the existing flags first
-		do_(SIOCGIFFLAGS, "failed to get interface flags");
-
-		e.ifru_flags |= IFF_UP;
-
-		do_(SIOCSIFFLAGS, "failed to set interface UP");
-	}
+	return ifr;
 }
