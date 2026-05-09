@@ -50,6 +50,8 @@ final class Updater
 		}
 	}
 
+	void check() => _func.check;
+
 	SubLogger logger;
 private:
 	void reset(Duration delay)
