@@ -5,6 +5,8 @@ version (linux)  :  // formatter bug
 enum TUN_DEVICE = `/dev/net/tun`;
 
 import core.stdc.errno, utile.except;
+import core.sys.posix.time : nanosleep, timespec;
+
 import utile_tun;
 
 bool tunWrite(int fd, in void[] data)
