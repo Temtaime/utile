@@ -3,8 +3,11 @@ module utile.tun.sys;
 version (linux)  :  // formatter bug
 
 enum TUN_DEVICE = `/dev/net/tun`;
+enum DELAY_MICROSECONDS = 100;
 
 import core.stdc.errno, utile.except;
+
+import utile.tun : VNET_HEADER_SIZE;
 import core.sys.posix.time : nanosleep, timespec;
 
 import utile_tun;
@@ -13,7 +16,7 @@ bool tunWrite(int fd, in void[] data)
 {
 	while (true)
 	{
-		auto written = write(fd, data.ptr, data.length);
+		int written = cast(int)write(fd, data.ptr, data.length);
 
 		if (written == data.length)
 		{
@@ -26,7 +29,7 @@ bool tunWrite(int fd, in void[] data)
 		}
 
 		timespec ts;
-		ts.tv_nsec = 100 * 1000; // 100 microseconds
+		ts.tv_nsec = DELAY_MICROSECONDS * 1000;
 
 		nanosleep(&ts, null);
 	}
@@ -34,7 +37,7 @@ bool tunWrite(int fd, in void[] data)
 
 int tunRead(int fd, void[] data)
 {
-	return read(fd, data.ptr, data.length);
+	return cast(int)read(fd, data.ptr, data.length);
 }
 
 void tunClose(int fd)
