@@ -5,7 +5,7 @@ import core.sys.posix.time;
 
 version (linux)
 {
-	import utile_tun;
+	import utile.tun.sys;
 }
 
 final class LinuxTunDevice : TunDevice
