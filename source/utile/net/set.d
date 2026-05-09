@@ -1,6 +1,6 @@
 module utile.net.set;
 
-import std.datetime, core.sys.posix.sys.select, core.sys.windows.winsock2, core.stdc.errno, utile.except;
+import std.datetime, std.algorithm, core.sys.posix.sys.select, core.sys.windows.winsock2, core.stdc.errno, utile.except;
 
 enum OpIndex
 {
@@ -51,11 +51,9 @@ final class ThreeSet
 
 	void reset()
 	{
-		FD_ZERO(rp);
-		FD_ZERO(wp);
-		FD_ZERO(ep);
-
 		_maxFd = -1;
+
+		_sets.each!((ref a) => FD_ZERO(&a));
 	}
 
 	void maxFd(int fd)
@@ -69,6 +67,7 @@ final class ThreeSet
 	void add(OpIndex idx, int fd)
 	{
 		maxFd = fd;
+
 		FD_SET(fd, _sets.ptr + idx);
 	}
 

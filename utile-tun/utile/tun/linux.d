@@ -5,7 +5,7 @@ import core.sys.posix.time;
 
 version (linux)
 {
-	import utile_tun;
+	import utile.tun.sys;
 }
 
 final class LinuxTunDevice : TunDevice
@@ -19,11 +19,8 @@ final class LinuxTunDevice : TunDevice
 
 		version (linux)
 		{
-			_fd = open_tun;
-			_fd >= 0 || throwError!`failed to access tun device`;
-
-			auto err = setup_device(_fd, _name.toStringz, false);
-			err && throwError(err.fromStringz);
+			_fd = tunOpen;
+			createTun(_fd, _name, false);
 		}
 		else
 			assert(false);
@@ -35,7 +32,7 @@ final class LinuxTunDevice : TunDevice
 
 		version (linux)
 		{
-			close_tun(_fd);
+			tunClose(_fd);
 		}
 	}
 
@@ -50,8 +47,7 @@ final class LinuxTunDevice : TunDevice
 
 		version (linux)
 		{
-			auto err = configure_tun(_name.toStringz, s.mtu, s.ip, prefixToNetmask(s.prefix));
-			err && throwError(err.fromStringz);
+			configureTun(_name, s.ip, prefixToNetmask(s.prefix), s.mtu);
 		}
 
 		_s = s;
@@ -63,7 +59,7 @@ final class LinuxTunDevice : TunDevice
 
 		version (linux)
 		{
-			write_tun(_fd, data.ptr, data.length) || throwError!`error %d writing to %s: buffer length %u`(errno, _name, data.length);
+			tunWrite(_fd, data) || throwError!`error %d writing to %s: buffer length %u`(errno, _name, data.length);
 		}
 	}
 
@@ -71,19 +67,19 @@ final class LinuxTunDevice : TunDevice
 	{
 		version (linux)
 		{
-			int bytesRead = read_tun(_fd, _buf.ptr, _buf.length);
+			uint n;
+			tunRead(_fd, _buf, n) || throwError!`error %d reading from %s`(errno, _name);
 
-			if (bytesRead <= 0)
+			if (n == 0)
 			{
-				errno == EAGAIN || throwError!`error %d reading from %s: buffer length %u, bytes read %d`(errno, _name, _buf.length, bytesRead);
 				return null;
 			}
 
-			logger.dbg!`read %u bytes`(bytesRead);
+			logger.dbg!`read %u bytes`(n);
 
-			assert(bytesRead >= MIN_FRAME && bytesRead <= MAX_FRAME);
+			assert(n >= MIN_FRAME && n <= MAX_FRAME);
 
-			return _buf[0 .. bytesRead];
+			return _buf[0 .. n];
 		}
 		else
 		{
