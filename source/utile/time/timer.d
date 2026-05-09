@@ -40,12 +40,23 @@ struct TimerFunc
 {
 	@disable this();
 
-	this(Duration delay, void delegate() func, bool once = true) nothrow
+	nothrow
 	{
-		_func = func;
-		_once = once;
+		this(Duration delay, void delegate() func, bool once = true)
+		{
+			_func = func;
+			_once = once;
 
-		_tm = AppTimer(delay);
+			_tm = AppTimer(delay);
+		}
+
+		void stop()
+		{
+			_func = null;
+		}
+
+		void reset() => _tm.reset;
+		const isActive() @property => !!_func;
 	}
 
 	void check()

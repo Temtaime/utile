@@ -10,30 +10,60 @@ final class Updater
 	{
 		_url = url;
 		_req = req;
+
 		_delay = delay;
+		_onUpdate = onUpdate;
 
 		_helpers = new UpdaterHelpers;
-		_logger = new SubLogger(parent, `updater`);
+		_func = TimerFunc(Duration.init, &onRequest); // run it immediately
 
-		_func = TimerFunc(Duration.init, &onRequest);
+		logger = new SubLogger(parent, `updater`);
 	}
 
-	bool isUpdateCompleted()
+	void forceCheck()
 	{
-		_func.check;
-		return _updated;
+		logger.info!`forced update check ...`;
+
+		// mark update as outdated to trigger update check
+		_outdated = true;
+
+		if (_func.isActive) // timer is active, so we are waiting for the next check, run it immediately
+		{
+			reset(Duration.init);
+		}
+		else
+		{
+			// if timer is not active, then there is already an update check in progress
+			// so we just need to wait for it to complete
+		}
+
+		while (_outdated)
+		{
+			// update app time to trigger timer
+			appTime.update;
+
+			// check if timer is fired
+			_func.check;
+
+			_req.run;
+			_req.wait;
+		}
 	}
 
+	SubLogger logger;
 private:
-	mixin publicProperty!(bool, `isVersionActual`);
+	void reset(Duration delay)
+	{
+		_func = TimerFunc(delay, &onRequest);
+	}
 
 	bool failed(Job j)
 	{
 		if (j.isError)
 		{
-			_logger.error!`update failed with code %u`(j.code);
+			logger.error!`update failed with code %u`(j.code);
 
-			_func = TimerFunc(RETRY_DELAY, &onRequest);
+			reset(RETRY_DELAY);
 			return true;
 		}
 
@@ -47,7 +77,7 @@ private:
 		job.method = Method.head;
 		job.onComplete = &onReceiveHeaders;
 
-		_logger.info!`checking for updates ...`;
+		logger.info!`checking for updates ...`;
 	}
 
 	void onReceiveHeaders(Job job)
@@ -63,18 +93,18 @@ private:
 
 		if (_helpers.isNewer(time))
 		{
-			_logger.info3!`update is available, downloading ...`;
+			logger.warn!`update is available, downloading ...`;
 
 			job = _req.makeJob(_url);
 			job.onComplete = &onReceiveData;
-		}
-		else
-		{
-			_func = TimerFunc(_delay, &onRequest);
 
-			_logger.info2!`no update is available`;
-			_isVersionActual = true;
+			return;
 		}
+
+		reset(_delay);
+		_outdated = false;
+
+		logger.msg!`no update is available`;
 	}
 
 	void onReceiveData(Job job)
@@ -85,12 +115,12 @@ private:
 		}
 
 		_helpers.onUpdateData(job.data);
-		_updated = true;
+		_onUpdate();
+		_outdated = false;
 	}
 
 	TimerFunc _func;
 	UpdaterHelpers _helpers;
-	SubLogger _logger;
 
 	const
 	{
@@ -99,5 +129,7 @@ private:
 	}
 
 	Requests _req;
-	bool _updated;
+
+	bool _outdated;
+	void delegate() _onUpdate;
 }

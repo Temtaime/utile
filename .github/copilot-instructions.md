@@ -8,7 +8,7 @@ code && throwError!`foo failed, error is %d`(code)
 
 this is only an example, use whatever is suitable(can be foo args or anything that matters in the context) or just a short error message
 3. use logger.info!`format string %u`(123) for logs instead of writeln
-also use info2/info3/warning/error when applicable
+also use dbg/msg/info2/info3/warn/error/fatal when applicable
 4. write string literals in `` instead of "", use "" only when the string contains escape sequences
 5. do not use () when calling functions with zero args
 6. use only the english language in the source files

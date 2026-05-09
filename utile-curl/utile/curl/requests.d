@@ -48,6 +48,12 @@ final class Requests
 		ts.maxFd = fd;
 	}
 
+	void wait(Duration timeout = 1.seconds)
+	{
+		auto mc = curl_multi_wait(_m, null, 0, timeout.toMsecs, null);
+		checkErrorM(false, mc, `wait`);
+	}
+
 	void run()
 	{
 		int running;
