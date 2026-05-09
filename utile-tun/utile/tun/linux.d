@@ -59,7 +59,7 @@ final class LinuxTunDevice : TunDevice
 
 		version (linux)
 		{
-			write_tun(_fd, data.ptr, data.length) || throwError!`error %d writing to %s: buffer length %u`(errno, _name, data.length);
+			tunWrite(_fd, data) || throwError!`failed to write to %s: buffer length %u`(_name, data.length);
 		}
 	}
 
@@ -67,7 +67,7 @@ final class LinuxTunDevice : TunDevice
 	{
 		version (linux)
 		{
-			int bytesRead = read_tun(_fd, _buf.ptr, _buf.length);
+			int bytesRead = tunRead(_fd, _buf);
 
 			if (bytesRead <= 0)
 			{

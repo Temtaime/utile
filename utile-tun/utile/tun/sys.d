@@ -4,24 +4,27 @@ version (linux)  :  // formatter bug
 
 enum TUN_DEVICE = `/dev/net/tun`;
 
-import utile.except;
+import core.stdc.errno, utile.except;
 import utile_tun;
 
-void tunWrite(int fd, const void* data, size_t size)
+bool tunWrite(int fd, in void[] data)
 {
 	while (true)
 	{
-		int written = write(fd, data, size);
+		int written = write(fd, data.ptr, data.length);
 
 		if (written == size)
 		{
-			return;
+			return true;
 		}
 
-		errno == EAGAIN || thrownError!`write failed with error %d`(errno);
+		if (errno != EAGAIN)
+		{
+			return false;
+		}
 
 		timespec ts;
-		ts.tv_nsec = 500 * 1000; // 500 microseconds
+		ts.tv_nsec = 100 * 1000; // 100 microseconds
 
 		nanosleep(&ts, null);
 	}
@@ -76,7 +79,7 @@ void createTun(int fd, string name, bool udp)
 	}
 }
 
-void configureTun(string name, uint ip, ubyte prefix, ushort mtu)
+void configureTun(string name, uint ip, uint mask, ushort mtu)
 {
 	int sock = socket(_AF_INET, SOCK_DGRAM, 0);
 	sock >= 0 || throwError!`failed to create socket for TUN configuration`;
@@ -100,7 +103,7 @@ void configureTun(string name, uint ip, ubyte prefix, ushort mtu)
 		doIoctl(sock, SIOCSIFADDR, &e);
 
 		// Netmask
-		*cast(sockaddr_in*)&ifru_netmask = sockaddr_in(_AF_INET, 0, in_addr(prefixToNetmask(prefix)));
+		*cast(sockaddr_in*)&ifru_netmask = sockaddr_in(_AF_INET, 0, in_addr(mask));
 
 		doIoctl(sock, SIOCSIFNETMASK, &e);
 
