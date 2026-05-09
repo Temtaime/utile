@@ -13,5 +13,5 @@ uint systemTick()
 	return cast(uint)(MonoTime.currTime.ticks * 1000 / MonoTime.ticksPerSecond);
 }
 
-uint toMsecs(Duration d) => cast(uint)d.total!`msecs`;
-uint toSecs(Duration d) => cast(uint)d.total!`seconds`;
+int toMsecs(Duration d) => cast(int)d.total!`msecs`;
+int toSecs(Duration d) => cast(int)d.total!`seconds`;
