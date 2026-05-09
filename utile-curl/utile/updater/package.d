@@ -37,12 +37,8 @@ final class Updater
 			// so we just need to wait for it to complete
 		}
 
-		while (_outdated)
+		for (; _outdated; appTime.update)
 		{
-			// update app time to trigger timer
-			appTime.update;
-
-			// check if timer is fired
 			_func.check;
 
 			_req.run;
