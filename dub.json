@@ -110,7 +110,10 @@
 			],
 			"dependencies": {
 				"utile": "*"
-			}
+			},
+			"sourceFiles-linux": [
+				"utile-tun/utile_tun.c"
+			]
 		},
 		{
 			"name": "test",
