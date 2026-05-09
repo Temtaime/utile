@@ -63,7 +63,7 @@ private:
 	{
 		if (j.isError)
 		{
-			logger.error!`update failed with code %u`(j.code);
+			logger.error!`request failed with code %u`(j.code);
 
 			reset(RETRY_DELAY);
 			return true;
@@ -95,7 +95,7 @@ private:
 
 		if (_helpers.isNewer(time))
 		{
-			logger.warn!`update is available, downloading ...`;
+			logger.info3!`update is available, downloading ...`;
 
 			job = _req.makeJob(_url);
 			job.onComplete = &onReceiveData;
@@ -116,8 +116,11 @@ private:
 			return;
 		}
 
+		logger.warn!`update downloaded, processing ...`;
+
 		_helpers.onUpdateData(job.data);
 		_onUpdate();
+
 		_outdated = false;
 	}
 
