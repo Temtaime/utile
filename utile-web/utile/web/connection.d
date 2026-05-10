@@ -5,27 +5,40 @@ import std.socket : Address, InternetAddress, Internet6Address, parseAddress, so
 
 import utile_microhttpd;
 
+alias Sender = int delegate(ulong pos, ubyte[] chunk);
+
 final class WebConnection
 {
 	void send(ushort code, string msg)
 	{
 		auto response = MHD_create_response_from_buffer_copy(msg.length, msg.ptr);
 
+		scope (exit)
+		{
+			MHD_destroy_response(response);
+		}
+
 		queueResponse(response, code);
-		MHD_destroy_response(response);
 	}
 
-	void send(uint chunkSize, WebHandler handler)
+	void send(uint chunkSize, Sender dg)
 	{
+		auto ctx = new ReaderContext(dg, this);
+		gcRetain(ctx, true);
+
 		auto response = MHD_create_response_from_callback(
 			_MHD_SIZE_UNKNOWN,
 			chunkSize,
 			&cbReader,
-			handler.toVoid,
+			ctx,
 			&cbReaderEnd);
 
+		scope (exit)
+		{
+			MHD_destroy_response(response);
+		}
+
 		queueResponse(response, 200);
-		MHD_destroy_response(response);
 	}
 
 	SubLogger logger;

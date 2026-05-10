@@ -50,6 +50,7 @@ private:
 		if (verify)
 		{
 			logger.info2!`update verified successfully`;
+			_helpers.apply;
 
 			_onUpdate();
 			_done = true;

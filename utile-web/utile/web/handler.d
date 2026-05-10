@@ -21,12 +21,6 @@ abstract class WebHandler
 	{
 	}
 
-	// used for chunked responses
-	int onSend(ulong pos, ubyte[] chunk)
-	{
-		assert(false);
-	}
-
 	// used for receiving request body
 	void onReceive(in ubyte[] chunk)
 	{
@@ -61,14 +55,20 @@ auto createHandler500(WebConnection conn) => new HandlerErrorCode(conn, 500, `In
 
 static extern (C):
 
+struct ReaderContext
+{
+	Sender sender;
+	WebConnection conn;
+}
+
 ptrdiff_t cbReader(void* cls, ulong pos, char* buf, size_t max)
 {
-	auto handler = cast(WebHandler)cls;
-	auto l = handler.logger;
+	auto ctx = cast(ReaderContext*)cls;
+	auto l = ctx.conn.logger;
 
 	try
 	{
-		return handler.onSend(pos, buf[0 .. max].toByte);
+		return ctx.sender(pos, buf[0 .. max].toByte);
 	}
 	catch (Exception e)
 	{
@@ -80,6 +80,8 @@ ptrdiff_t cbReader(void* cls, ulong pos, char* buf, size_t max)
 
 void cbReaderEnd(void* cls)
 {
+	auto ctx = cast(ReaderContext*)cls;
+	gcRetain(ctx, false);
 }
 
 void completeRequest(void* cls, MHD_Connection* connection, void** req_cls, MHD_RequestTerminationCode toe)
@@ -96,8 +98,7 @@ void completeRequest(void* cls, MHD_Connection* connection, void** req_cls, MHD_
 		l.error!`failed to complete request: %s`(e.msg);
 	}
 
-	gcMark(handler, false);
-	gcNoMove(handler, false);
+	gcRetain(handler, false);
 
 	l.info2!`completed with code %s`(toe);
 }
@@ -178,8 +179,7 @@ MHD_Result createResponse(
 			h = createHandler500(conn);
 		}
 
-		gcMark(h, true);
-		gcNoMove(h, true);
+		gcRetain(h, true);
 
 		*req_cls = h.toVoid;
 	}
