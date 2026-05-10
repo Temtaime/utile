@@ -15,13 +15,13 @@ final class WebConnection
 		MHD_destroy_response(response);
 	}
 
-	void send(uint chunkSize)
+	void send(uint chunkSize, WebHandler handler)
 	{
 		auto response = MHD_create_response_from_callback(
 			_MHD_SIZE_UNKNOWN,
 			chunkSize,
 			&cbReader,
-			this.toVoid,
+			handler.toVoid,
 			&cbReaderEnd);
 
 		queueResponse(response, 200);
