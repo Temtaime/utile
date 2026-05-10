@@ -1,136 +1,59 @@
 module utile.updater;
 
-import std.datetime, utile, utile.curl, utile.updater.helpers;
+import std.datetime, std.process, utile, utile.curl;
 
-enum RETRY_DELAY = 30.seconds;
+import utile.updater.impl;
+import utile.updater.verify;
 
-final class Updater
+abstract class UpdaterBase
 {
-	this(string url, Requests req, void delegate() onUpdate, Duration delay, Logger parent)
+	static UpdaterBase create(string url, Requests req, void delegate() onUpdate, Duration delay, Logger parent)
 	{
-		_url = url;
-		_req = req;
+		UpdaterBase r;
 
-		_delay = delay;
-		_onUpdate = onUpdate;
-
-		_helpers = new UpdaterHelpers;
-		_func = TimerFunc(Duration.init, &onRequest); // run it immediately
-
-		logger = new SubLogger(parent, `updater`);
-	}
-
-	void forceCheck()
-	{
-		logger.info!`forced update check ...`;
-
-		// mark update as outdated to trigger update check
-		_outdated = true;
-
-		if (_func.isActive) // timer is active, so we are waiting for the next check, run it immediately
+		if (SKIP_ENV in environment)
 		{
-			reset(Duration.init);
+			r = new SkipUpdater;
+		}
+		else if (VERIFY_ENV in environment)
+		{
+			r = new VerifyUpdater(url, req);
 		}
 		else
 		{
-			// if timer is not active, then there is already an update check in progress
-			// so we just need to wait for it to complete
+			r = new Updater(url, req, onUpdate, delay);
 		}
 
-		for (; _outdated; appTime.update)
-		{
-			_func.check;
-
-			_req.run;
-			_req.wait;
-		}
+		r.logger = new SubLogger(parent, `updater`);
+		return r;
 	}
 
-	void check() => _func.check;
+	abstract void check(); // checks for updates, should be called periodically
+	abstract bool onStart(); // returns true if the app should exit immediately
 
 	SubLogger logger;
-private:
-	void reset(Duration delay)
+}
+
+package:
+
+enum
+{
+	RETRY_DELAY = 30.seconds,
+	UPDATED_TOKEN = `__UPDATED__`,
+
+	SKIP_ENV = `UTILE_SKIP_UPDATE`,
+	VERIFY_ENV = `UTILE_VERIFY_UPDATE`
+}
+
+final class SkipUpdater : UpdaterBase
+{
+	override bool onStart()
 	{
-		_func = TimerFunc(delay, &onRequest);
-	}
-
-	bool failed(Job j)
-	{
-		if (j.isError)
-		{
-			logger.error!`request failed with code %u`(j.code);
-
-			reset(RETRY_DELAY);
-			return true;
-		}
-
+		logger.warn!`updates are disabled`;
 		return false;
 	}
 
-	void onRequest()
+	override void check()
 	{
-		auto job = _req.makeJob(_url);
-
-		job.method = Method.head;
-		job.onComplete = &onReceiveHeaders;
-
-		logger.info!`checking for updates ...`;
 	}
-
-	void onReceiveHeaders(Job job)
-	{
-		if (failed(job))
-		{
-			return;
-		}
-
-		auto time = job
-			.responseHeaders[`last-modified`]
-			.parseHTTPDate;
-
-		if (_helpers.isNewer(time))
-		{
-			logger.info3!`update is available, downloading ...`;
-
-			job = _req.makeJob(_url);
-			job.onComplete = &onReceiveData;
-
-			return;
-		}
-
-		reset(_delay);
-		_outdated = false;
-
-		logger.msg!`no update is available`;
-	}
-
-	void onReceiveData(Job job)
-	{
-		if (failed(job))
-		{
-			return;
-		}
-
-		logger.warn!`update downloaded, processing ...`;
-
-		_helpers.onUpdateData(job.data);
-		_onUpdate();
-
-		_outdated = false;
-	}
-
-	TimerFunc _func;
-	UpdaterHelpers _helpers;
-
-	const
-	{
-		string _url;
-		Duration _delay;
-	}
-
-	Requests _req;
-
-	bool _outdated;
-	void delegate() _onUpdate;
 }

@@ -12,7 +12,8 @@ enum LogLevel
 	info3,
 	warn,
 	error,
-	fatal
+	fatal,
+	none
 }
 
 abstract class LoggerBase

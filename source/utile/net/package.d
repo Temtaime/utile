@@ -3,7 +3,7 @@ module utile.net;
 import core.thread;
 import std, utile, core.memory, core.sys.posix.arpa.inet;
 
-public import utile.net.set;
+public import utile.net.set, utile.net.headers;
 
 uint prefixToNetmask(ubyte prefix)
 {

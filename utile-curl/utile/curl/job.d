@@ -92,7 +92,7 @@ final class Job
 
 	void etag(string etag)
 	{
-		header(`If-Match`, etag);
+		header(Header.ifMatch, etag);
 	}
 
 	void range(ulong start, ulong end)
@@ -161,7 +161,7 @@ final class Job
 
 	Blob data() const @property
 	{
-		isLengthBad && throwError!`content-length is %u, but response length is %u`(_contentLength, _data.length);
+		isLengthBad && throwError!`%s is %u, but response length is %u`(Header.contentLength, _contentLength, _data.length);
 
 		return _data;
 	}
@@ -307,7 +307,7 @@ private:
 						.stripLeft
 						.idup;
 
-					if (key == `content-length`)
+					if (key == HeaderNormalized.contentLength)
 					{
 						_contentLength = value.to!ulong;
 					}

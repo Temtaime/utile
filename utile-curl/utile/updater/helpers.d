@@ -11,64 +11,43 @@ package:
 
 class UpdaterHelpers
 {
-	this()
+	void cleanup()
 	{
-		_exePath = thisExePath;
-		_oldPath = _exePath ~ OLD_SUFFIX;
-
-		_fileModified = timeLastModified(_exePath);
-
-		while (exists(_oldPath))
+		while (exists(old))
 		{
-			try
-			{
-				remove(_oldPath);
-			}
-			catch (Exception)
-			{
-				Thread.sleep(1.seconds);
-			}
+			collectException(old.remove);
+			Thread.sleep(100.msecs);
 		}
 	}
 
-	bool isNewer(SysTime serverTime)
-	{
-		_serverTime = serverTime;
-		return serverTime != _fileModified;
-	}
+	bool isNewVersion(SysTime srTime) => srTime != exe.timeLastModified;
 
-	void onUpdateData(in ubyte[] data)
+	void unpack(in ubyte[] data, SysTime srTime)
 	{
+		data.toFile(tmp);
+		tmp.setTimes(srTime, srTime);
+
 		version (Posix)
 		{
-			stat_t st;
-			stat(_exePath.toStringz, &st);
+			stat_t e;
+
+			stat(exe.toStringz, &e);
+			chmod(tmp.toStringz, e.st_mode);
 		}
+	}
 
-		string tmp = _exePath ~ TMP_SUFFIX;
-
-		data.toFile(tmp);
-		setTimes(tmp, _serverTime, _serverTime);
-
+	void apply()
+	{
 		version (Windows)
 		{
-			rename(_exePath, _oldPath);
-		}
-		else
-		{
-			chmod(tmp.toStringz, st.st_mode);
+			rename(exe, old);
 		}
 
-		rename(tmp, _exePath);
+		rename(tmp, exe);
 	}
 
+	@property tmp() => exe ~ TMP_SUFFIX;
 private:
-	immutable
-	{
-		string _exePath;
-		string _oldPath;
-		SysTime _fileModified;
-	}
-
-	SysTime _serverTime;
+	@property exe() => thisExePath;
+	@property old() => exe ~ OLD_SUFFIX;
 }

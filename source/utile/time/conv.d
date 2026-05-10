@@ -5,22 +5,22 @@ import std, utile.except;
 //
 // "Thu, 25 Dec 2025 05:07:18 GMT" to "2025-Dec-25 05:07:18"
 //
-string rfcToSimpleString(string rfcDate)
+string rfcToSimpleString(string dateStr)
 {
-	auto parts = rfcDate.split(`,`);
+	auto parts = dateStr.split(`,`);
 
-	parts.length >= 2 || throwError(`invalid RFC date format`);
+	parts.length == 2 || throwError(`invalid RFC date format`);
 
 	auto dateParts = parts[1]
 		.strip
 		.split;
 
-	if (dateParts.length != 5 || dateParts[4] != `GMT`)
-	{
-		throwError(`invalid RFC date format`);
-	}
+	dateParts.length == 5 && dateParts[4] == `GMT` || throwError(`invalid RFC date format`);
 
-	return dateParts[0 .. 3].retro.join(`-`) ~ ' ' ~ dateParts[3];
+	auto date = dateParts[0 .. 3];
+	string time = dateParts[3];
+
+	return format!`%-(%s-%) %s`(date.retro, time);
 }
 
 //
