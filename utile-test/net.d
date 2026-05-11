@@ -36,13 +36,13 @@ final class Handler : WebHandler
 
 unittest
 {
-	scope req = new Requests;
+	scope req = new Requests(logger);
 	scope web = new WebServer(PORT, 10.seconds, logger);
 
 	web.headerIP = `X-Forwarded-For`;
 	web.routes[`/hehe`][`GET`] = (conn) => new Handler(conn);
 
-	auto e = req.makeJob(format!`http://127.0.0.1:%u/hehe?foo=bar`(PORT));
+	auto e = req.create(format!`http://127.0.0.1:%u/hehe?foo=bar`(PORT));
 
 	auto aa = [`cookie`: `chocolate`];
 	e.cookies(aa);
@@ -62,7 +62,7 @@ unittest
 		web.run(ts);
 	}
 
-	assert(!e.isError);
+	assert(!e.hasError);
 	assert(e.code == 200);
 	assert(e.data == `hello world`);
 }

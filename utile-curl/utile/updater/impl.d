@@ -30,7 +30,7 @@ protected:
 		{
 			logger.info2!`newer version found, downloading ...`;
 
-			auto j = makeJob;
+			auto j = createJob;
 			j.onComplete = a => wrap(&onReceiveData, a);
 		}
 		else

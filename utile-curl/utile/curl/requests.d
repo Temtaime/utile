@@ -1,37 +1,54 @@
 module utile.curl.requests;
 
-import std, core.atomic, core.sync.event, core.sync.mutex, core.thread, core.time, core.memory, utile, utile.net;
+import core.atomic, core.sync.event, core.sync.mutex, core.thread, core.time, core.memory, utile, utile.net;
+
+import std.string;
 
 import utile.curl, utile_curl;
-import std : min, max;
 
 final class Requests
 {
-	this()
+	this(Logger parent)
 	{
 		_m = curl_multi_init();
-		curl_multi_setopt(_m, CURLMOPT_MAX_TOTAL_CONNECTIONS, ulong(MAX_CONNECTIONS));
+
+		logger = new SubLogger(parent, `requests`);
 	}
 
 	~this()
 	{
-		foreach (job; _jobs)
+		foreach (j; _jobs)
 		{
-			curl_multi_remove_handle(_m, job.handle);
-			job.cleanup;
+			curl_multi_remove_handle(_m, j.handle);
+			j.cleanup;
 		}
 
 		curl_multi_cleanup(_m);
 	}
 
-	auto makeJob(string url)
+	void maxTotalConnections(uint c)
 	{
-		auto job = new Job(url);
+		option(CURLMOPT_MAX_TOTAL_CONNECTIONS, c);
+	}
 
-		_jobs ~= job;
-		curl_multi_add_handle(_m, job.handle);
+	void maxConcurrentStreams(uint c)
+	{
+		option(CURLMOPT_MAX_CONCURRENT_STREAMS, c);
+	}
 
-		return job;
+	auto create(string url)
+	{
+		auto j = new Job(url, logger);
+
+		if (onNewJob)
+		{
+			onNewJob(j);
+		}
+
+		_jobs.add(j);
+		curl_multi_add_handle(_m, j.handle);
+
+		return j;
 	}
 
 	void fdset(ThreeSet ts)
@@ -75,43 +92,57 @@ final class Requests
 				continue;
 
 			auto e = Job.fromHandle(m.easy_handle);
-
-			if (!e.aborted)
-			{
-				checkError(false, m.data.result, `job`);
-			}
-
-			removeJob(e);
+			removeJob(e, m.data.result);
 		}
 	}
 
 	void abort(Job j)
 	{
-		logger.info2!`curl job was forced to abort`;
-
 		with (j)
 		{
-			_aborted = true;
+			abort(`user request`);
 			removeJob(j);
 		}
 	}
 
-	enum MAX_CONNECTIONS = 32;
+	SubLogger logger;
+	void delegate(Job) onNewJob;
 private:
-	void removeJob(Job job)
+	void option(CURLMoption opt, long value)
+	{
+		auto res = curl_multi_setopt(_m, opt, value);
+		checkErrorM(true, res, `option`);
+	}
+
+	void removeJob(Job job, CURLcode c = CURLE_OK)
 	{
 		with (job)
 		{
 			curl_multi_remove_handle(_m, handle);
 
-			complete;
+			complete(c);
 			cleanup;
 		}
 
-		auto idx = _jobs.countUntil!(a => a is job);
-		_jobs.removeUnstable(idx);
+		_jobs.remove(job);
+	}
+
+	void checkErrorM(bool doThrow, CURLMcode code, string msg)
+	{
+		if (code == CURLM_OK)
+			return;
+
+		enum F = `multi %s failed, error %d - %s`;
+		auto error = curl_multi_strerror(code).fromStringz;
+
+		if (doThrow)
+		{
+			throwError!F(msg, code, error);
+		}
+		else
+			logger.error!F(msg, code, error);
 	}
 
 	CURLM* _m;
-	Job[] _jobs;
+	HashSet!Job _jobs;
 }

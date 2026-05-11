@@ -73,7 +73,7 @@ final:
 	{
 		void wrap(void delegate(Job) dg, Job j)
 		{
-			if (j.isError)
+			if (j.hasError)
 			{
 				logger.error!`request failed with code %u`(j.code);
 			}
@@ -96,7 +96,7 @@ final:
 		}
 	}
 
-	auto makeJob() => _req.makeJob(_url);
+	auto createJob() => _req.create(_url);
 
 	bool _done;
 	bool _hasUpdate;
@@ -106,7 +106,7 @@ final:
 private:
 	void onRequest()
 	{
-		auto j = makeJob;
+		auto j = createJob;
 
 		j.method = Method.head;
 		j.onComplete = a => wrap(&onHeaders, a);

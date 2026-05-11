@@ -10,8 +10,7 @@ public import utile.curl.requests;
 shared static this()
 {
 	auto c = curl_global_init(CURL_GLOBAL_ALL);
-
-	checkError(true, c, `global init`);
+	c == CURLE_OK || throwError!`failed to initialize curl, error %d`(c);
 }
 
 shared static ~this()
@@ -52,40 +51,4 @@ enum Write
 {
 	abort = CURL_WRITEFUNC_ERROR,
 	pause = CURL_WRITEFUNC_PAUSE
-}
-
-package:
-
-enum CONNECTION_IDLE_ABORT_TIME = 60.seconds;
-
-void checkError(bool doThrow, CURLcode code, string msg)
-{
-	if (code == CURLE_OK)
-		return;
-
-	enum F = `easy %s failed, error %d - %s`;
-	auto error = curl_easy_strerror(code).fromStringz;
-
-	if (doThrow)
-	{
-		throwError!F(msg, code, error);
-	}
-	else
-		logger.error!F(msg, code, error);
-}
-
-void checkErrorM(bool doThrow, CURLMcode code, string msg)
-{
-	if (code == CURLM_OK)
-		return;
-
-	enum F = `multi %s failed, error %d - %s`;
-	auto error = curl_multi_strerror(code).fromStringz;
-
-	if (doThrow)
-	{
-		throwError!F(msg, code, error);
-	}
-	else
-		logger.error!F(msg, code, error);
 }
