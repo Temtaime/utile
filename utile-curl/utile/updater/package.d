@@ -38,7 +38,7 @@ package:
 
 enum
 {
-	RETRY_DELAY = 30.seconds,
+	RETRY_DELAY = 10.seconds,
 	UPDATED_TOKEN = `__UPDATED__`,
 
 	SKIP_ENV = `UTILE_SKIP_UPDATE`,

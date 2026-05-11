@@ -87,7 +87,7 @@ final:
 					logger.error(ex.msg);
 				}
 
-			reset(RETRY_DELAY);
+			reset;
 		}
 
 		void reset(Duration delay = RETRY_DELAY)
@@ -108,7 +108,7 @@ private:
 	{
 		auto j = createJob;
 
-		j.method = Method.head;
+		j.noBody;
 		j.onComplete = a => wrap(&onHeaders, a);
 	}
 
