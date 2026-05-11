@@ -154,6 +154,8 @@ package:
 
 		logger = new SubLogger(parent, format!`%x`(this.toVoid));
 		logger.info!`created: %s`(url);
+
+		_meter = AppTimeMeter.init;
 	}
 
 	void complete(CURLcode c)
@@ -168,7 +170,12 @@ package:
 			checkError(logger, c, `job`);
 		}
 
-		logger.info2!`job %s`(_hasError ? `failed` : `completed`);
+		if (_hasError)
+		{
+			logger.warn!`job failed, elapsed %s`(_meter.elapsed);
+		}
+		else
+			logger.info2!`job completed, elapsed %s`(_meter.elapsed);
 
 		try
 		{
@@ -197,7 +204,6 @@ package:
 	void abort(string reason)
 	{
 		_aborted = true;
-
 		logger.info2!`job was forced to abort by %s`(reason);
 	}
 
@@ -210,5 +216,7 @@ package:
 
 	@property handle() => _handle;
 private:
+	AppTimeMeter _meter;
+
 	curl_slist* _headers;
 }

@@ -1,4 +1,4 @@
-import std, utile.log, utile.net, utile.curl, utile.web;
+import std, utile.log, utile.net, utile.curl, utile.web, utile.time.app;
 
 enum PORT = 23_769;
 
@@ -49,7 +49,7 @@ unittest
 
 	e.header(`X-Forwarded-For`, `1.1.1.1`);
 
-	for (scope ts = new ThreeSet; !e.done;)
+	for (scope ts = new ThreeSet; !e.done; appTime.update)
 	{
 		ts.reset;
 
