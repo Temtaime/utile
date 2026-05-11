@@ -101,7 +101,7 @@ final class Requests
 		with (j)
 		{
 			abort(`user request`);
-			removeJob(j);
+			removeJob(j, CURLE_OK);
 		}
 	}
 
@@ -114,7 +114,7 @@ private:
 		checkErrorM(true, res, `option`);
 	}
 
-	void removeJob(Job job, CURLcode c = CURLE_OK)
+	void removeJob(Job job, CURLcode c)
 	{
 		with (job)
 		{

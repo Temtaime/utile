@@ -172,10 +172,10 @@ package:
 
 		if (_hasError)
 		{
-			logger.warn!`job failed, elapsed %s`(_meter.elapsed);
+			logger.warn!`failed, elapsed %s`(_meter.elapsed);
 		}
 		else
-			logger.info2!`job completed, elapsed %s`(_meter.elapsed);
+			logger.info2!`completed, elapsed %s`(_meter.elapsed);
 
 		try
 		{
@@ -204,7 +204,7 @@ package:
 	void abort(string reason)
 	{
 		_aborted = true;
-		logger.info2!`job was forced to abort by %s`(reason);
+		logger.info2!`aborted by %s`(reason);
 	}
 
 	static fromHandle(CURL* handle)

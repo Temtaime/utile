@@ -71,21 +71,19 @@ final:
 
 	nothrow
 	{
-		void wrap(void delegate(Job) dg, Job j)
+		void wrap(void delegate(Job) dg, Job e)
 		{
-			if (j.hasError)
+			if (!e.hasError)
 			{
-				logger.error!`request failed with code %u`(j.code);
-			}
-			else
 				try
 				{
-					return dg(j);
+					return dg(e);
 				}
 				catch (Exception ex)
 				{
 					logger.error(ex.msg);
 				}
+			}
 
 			reset;
 		}

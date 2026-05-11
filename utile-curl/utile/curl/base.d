@@ -52,7 +52,7 @@ void checkError(SubLogger logger, CURLcode code, string msg)
 	if (code == CURLE_OK)
 		return;
 
-	enum F = `easy %s failed, error %d - %s`;
+	enum F = `easy %s error %d - %s`;
 	auto error = curl_easy_strerror(code).fromStringz;
 
 	if (logger)
