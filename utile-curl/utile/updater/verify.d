@@ -25,7 +25,7 @@ class VerifyUpdater : UpdaterBase
 
 		if (_hasUpdate)
 		{
-			logger.error!`newer version found during verify`;
+			logger.fatal!`newer version found`;
 		}
 		else
 		{
@@ -106,8 +106,8 @@ private:
 	{
 		_func.check;
 
-		_req.run;
 		_req.wait;
+		_req.run;
 
 		return _done;
 	}

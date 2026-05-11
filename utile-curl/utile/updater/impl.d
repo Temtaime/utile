@@ -32,7 +32,7 @@ protected:
 			return true;
 		}
 
-		logger.info3!`update found !`;
+		logger.info2!`update found !`;
 		logger.info3!`verifying downloaded binary ...`;
 
 		_helpers.unpack(data, date);
