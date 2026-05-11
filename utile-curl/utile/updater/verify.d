@@ -21,7 +21,6 @@ class VerifyUpdater : UpdaterBase
 	override bool onStart()
 	{
 		logger.info!`verifying update ...`;
-
 		loop;
 
 		if (_hasUpdate)
@@ -42,80 +41,79 @@ class VerifyUpdater : UpdaterBase
 	}
 
 protected:
-	void onCheck()
+	bool onCheck(Blob, SysTime date)
 	{
-		_done = true;
+		_hasUpdate = _helpers.dateModified != date;
+		return true;
 	}
 
 final:
-	static srTime(Job j)
-	{
-		if (auto p = HeaderNormalized.lastModified in j.responseHeaders)
-		{
-			return parseHTTPDate(*p);
-		}
+	void loop() => timerLoop(&loopImpl);
 
-		throwError!`missing %s header in response`(Header.lastModified);
+	void reset(Duration delay = RETRY_DELAY) nothrow
+	{
+		_func = TimerFunc(delay, &onRequest);
 	}
 
-	void loop()
-	{
-		for (; !_done; appTime.update)
-		{
-			_func.check;
-
-			_req.run;
-			_req.wait;
-		}
-	}
-
-	nothrow
-	{
-		void wrap(void delegate(Job) dg, Job e)
-		{
-			if (!e.hasError)
-			{
-				try
-				{
-					return dg(e);
-				}
-				catch (Exception ex)
-				{
-					logger.error(ex.msg);
-				}
-			}
-
-			reset;
-		}
-
-		void reset(Duration delay = RETRY_DELAY)
-		{
-			_func = TimerFunc(delay, &onRequest);
-		}
-	}
-
-	auto createJob() => _req.create(_url);
-
-	bool _done;
 	bool _hasUpdate;
 
 	TimerFunc _func;
 	UpdaterHelpers _helpers;
 private:
-	void onRequest()
+	static srTime(Job j)
 	{
-		auto j = createJob;
+		if (auto p = HeaderNormalized.lastModified in j.responseHeaders)
+		{
+			return parseHttpDate(*p);
+		}
 
-		j.noBody;
-		j.onComplete = a => wrap(&onHeaders, a);
+		throwError!`missing %s header in response`(Header.lastModified);
 	}
 
-	void onHeaders(Job j)
+	void onRequest()
 	{
-		_hasUpdate = _helpers.isNewVersion(srTime(j));
-		onCheck;
+		auto j = _req.create(_url);
+
+		j.header(Header.ifModifiedSince, _helpers.dateModified.toHttpDate);
+		j.onComplete = &onHeaders;
+	}
+
+	void onHeaders(Job e)
+	{
+		if (!e.hasError)
+		{
+			try
+			{
+				auto date = srTime(e);
+				auto data = e.code == 304 ? null : e.data;
+
+				if (onCheck(data, date))
+				{
+					_done = true;
+					return;
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.error(ex.msg);
+			}
+		}
+
+		reset;
+	}
+
+	bool loopImpl()
+	{
+		_func.check;
+
+		_req.run;
+		_req.wait;
+
+		return _done;
 	}
 
 	string _url;
 	Requests _req;
+
+	bool _done;
 }

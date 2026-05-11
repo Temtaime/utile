@@ -1,34 +1,21 @@
 module utile.time.conv;
 
-import std, utile.except;
+import std;
 
-//
-// "Thu, 25 Dec 2025 05:07:18 GMT" to "2025-Dec-25 05:07:18"
-//
-string rfcToSimpleString(string dateStr)
+SysTime parseHttpDate(string s) => s.parseRFC822DateTime;
+
+string toHttpDate(SysTime t)
 {
-	auto parts = dateStr.split(`,`);
+	auto dt = cast(DateTime)t.toUTC;
 
-	parts.length == 2 || throwError(`invalid RFC date format`);
+	auto day = dt.dayOfWeek.to!string.capitalize;
+	auto month = dt.month.to!string.capitalize;
 
-	auto dateParts = parts[1]
-		.strip
-		.split;
-
-	dateParts.length == 5 && dateParts[4] == `GMT` || throwError(`invalid RFC date format`);
-
-	auto date = dateParts[0 .. 3];
-	string time = dateParts[3];
-
-	return format!`%-(%s-%) %s`(date.retro, time);
-}
-
-//
-// Parse HTTP date format (RFC 1123)
-//
-SysTime parseHTTPDate(string dateStr)
-{
-	return DateTime
-		.fromSimpleString(rfcToSimpleString(dateStr))
-		.SysTime(UTC());
+	return format!`%s, %02u %s %u %s GMT`(
+		day,
+		dt.day,
+		month,
+		dt.year,
+		dt.timeOfDay.toISOExtString
+	);
 }

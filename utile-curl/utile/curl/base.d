@@ -91,7 +91,7 @@ size_t headersFunc(char* buffer, size_t size, size_t nitems, void* userdata)
 			if (chunks.length >= 2)
 			{
 				_code = cast(ushort)chunks[1].to!ushort;
-				_hasError = _code / 100 != 2;
+				_hasError = _code >= 400 && _code < 600;
 			}
 			else
 			{

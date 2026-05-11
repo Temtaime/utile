@@ -1,6 +1,6 @@
 module utile.time.app;
 
-import core.time, utile.misc;
+import core.thread, core.time, utile.misc;
 
 __gshared AppTime appTime;
 
@@ -29,4 +29,19 @@ nothrow:
 	auto elapsed() => appTime.now - _start;
 private:
 	MonoTime _start;
+}
+
+void timerLoop(bool delegate() dg)
+{
+	while (true)
+	{
+		appTime.update;
+
+		if (dg())
+		{
+			break;
+		}
+
+		Thread.sleep(10.msecs);
+	}
 }
