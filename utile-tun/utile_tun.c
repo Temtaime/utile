@@ -16,6 +16,8 @@
 #include <sys/stat.h>
 #include <stdio.h>
 
+#include <poll.h>
+
 enum
 {
 	_TUNSETIFF = TUNSETIFF,
