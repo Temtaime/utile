@@ -3,16 +3,15 @@ module utile.tun.sys;
 version (linux)  :  // formatter bug
 
 enum TUN_DEVICE = `/dev/net/tun`;
-enum DELAY_MICROSECONDS = 100;
 
-import core.stdc.errno, utile.except;
+import core.stdc.errno, core.sys.posix.poll;
 
+import utile.except;
 import utile.tun : VNET_HEADER_SIZE;
-import core.sys.posix.time : nanosleep, timespec;
 
 import utile_tun;
 
-bool tunWrite(int fd, in void[] data)
+void tunWrite(int fd, in void[] data)
 {
 	while (true)
 	{
@@ -20,32 +19,46 @@ bool tunWrite(int fd, in void[] data)
 
 		if (written == data.length)
 		{
-			return true;
+			return;
 		}
 
-		if (errno != EAGAIN)
+		if (errno == EINTR)
 		{
-			return false;
+			continue;
 		}
 
-		timespec ts;
-		ts.tv_nsec = DELAY_MICROSECONDS * 1000;
+		errno == EAGAIN || throwError!`write failed with error %d`(errno);
 
-		nanosleep(&ts, null);
+		pollfd e;
+		e.fd = fd;
+		e.events = POLLOUT;
+
+		do
+		{
+			if (poll(&e, 1, -1) > 0)
+				break;
+
+			errno == EINTR || throwError!`poll failed with error %d`(errno);
+		}
+		while (true);
 	}
 }
 
-bool tunRead(int fd, void[] data, ref uint bytes)
+uint tunRead(int fd, void[] data)
 {
 	int k = cast(int)read(fd, data.ptr, data.length);
 
-	if (k <= 0)
+	if (k > 0)
 	{
-		return errno == EAGAIN;
+		return k;
 	}
 
-	bytes = k;
-	return true;
+	if (errno == EAGAIN || errno == EINTR)
+	{
+		return 0;
+	}
+
+	throwError!`read failed with error %d`(errno);
 }
 
 void tunClose(int fd)
