@@ -15,6 +15,11 @@ final class UpdaterHelpers
 	{
 		_exe = thisExePath;
 		_dateModified = _exe.timeLastModified;
+
+		version (Posix)
+		{
+			stat(_exe.toStringz, &_st);
+		}
 	}
 
 	void cleanup()
@@ -33,10 +38,7 @@ final class UpdaterHelpers
 
 		version (Posix)
 		{
-			stat_t e;
-
-			stat(exe.toStringz, &e);
-			chmod(tmp.toStringz, e.st_mode);
+			chmod(tmp.toStringz, _st.st_mode);
 		}
 	}
 
@@ -81,6 +83,11 @@ private:
 
 	@property tmp() => _exe ~ TMP_SUFFIX;
 	@property old() => _exe ~ OLD_SUFFIX;
+
+	version (Posix)
+	{
+		stat_t _st;
+	}
 
 	string _exe;
 }
