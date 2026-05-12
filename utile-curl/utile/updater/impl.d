@@ -18,6 +18,7 @@ final class Updater : VerifyUpdater
 
 	override bool onStart()
 	{
+		_helpers.cleanup;
 		loop;
 		return _hasUpdate;
 	}

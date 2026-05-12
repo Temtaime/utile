@@ -1,6 +1,6 @@
 module utile.updater.helpers;
 
-import std, utile.io, utile.log, utile.updater;
+import std, utile, utile.updater;
 
 enum OLD_SUFFIX = `.old`;
 enum TMP_SUFFIX = `.tmp`;
@@ -9,11 +9,22 @@ import core.thread, core.sys.posix.sys.stat, utile.time;
 
 package:
 
-class UpdaterHelpers
+final class UpdaterHelpers
 {
+	this()
+	{
+		_exe = thisExePath;
+		_dateModified = _exe.timeLastModified;
+
+		version (Posix)
+		{
+			stat(_exe.toStringz, &_st);
+		}
+	}
+
 	void cleanup()
 	{
-		while (exists(old))
+		while (old.exists)
 		{
 			collectException(old.remove);
 			Thread.sleep(100.msecs);
@@ -27,10 +38,7 @@ class UpdaterHelpers
 
 		version (Posix)
 		{
-			stat_t e;
-
-			stat(exe.toStringz, &e);
-			chmod(tmp.toStringz, e.st_mode);
+			chmod(tmp.toStringz, _st.st_mode);
 		}
 	}
 
@@ -38,10 +46,10 @@ class UpdaterHelpers
 	{
 		version (Windows)
 		{
-			rename(exe, old);
+			rename(_exe, old);
 		}
 
-		rename(tmp, exe);
+		rename(tmp, _exe);
 	}
 
 	bool verify(SubLogger logger)
@@ -70,10 +78,16 @@ class UpdaterHelpers
 		return true;
 	}
 
-	@property dateModified() => exe.timeLastModified;
 private:
-	@property exe() => thisExePath;
+	mixin publicProperty!(SysTime, `dateModified`);
 
-	@property tmp() => exe ~ TMP_SUFFIX;
-	@property old() => exe ~ OLD_SUFFIX;
+	@property tmp() => _exe ~ TMP_SUFFIX;
+	@property old() => _exe ~ OLD_SUFFIX;
+
+	version (Posix)
+	{
+		stat_t _st;
+	}
+
+	string _exe;
 }
