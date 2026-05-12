@@ -75,10 +75,10 @@ private:
 		auto j = _req.create(_url);
 
 		j.header(Header.ifModifiedSince, _helpers.dateModified.toHttpDate);
-		j.onComplete = &onHeaders;
+		j.onComplete = &onResponse;
 	}
 
-	void onHeaders(Job e)
+	void onResponse(Job e)
 	{
 		if (!e.hasError)
 		{
