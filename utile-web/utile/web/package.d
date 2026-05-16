@@ -1,6 +1,6 @@
 module utile.web;
 
-import std.datetime, std.string, std.functional, utile, utile.net;
+import std.datetime, std.string, std.functional, utile, utile.net, utile.net.headers;
 import utile_microhttpd;
 
 public import utile.web.handler;
@@ -46,9 +46,9 @@ final class WebServer
 		ts.maxFd = cast(int)fd;
 	}
 
-	void headerIP(string header)
+	void setClientIP(HeaderNormalized header)
 	{
-		_ipHeader = header.toLower;
+		_ipHeader = header;
 	}
 
 	//

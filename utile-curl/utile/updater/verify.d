@@ -1,11 +1,18 @@
 module utile.updater.verify;
 
 import std.datetime, std.process, std.stdio;
-import utile, utile.curl, utile.updater.helpers;
+import utile, utile.curl, utile.net.headers, utile.updater.helpers;
 
 import utile.updater;
 
 package:
+
+enum State
+{
+	ok,
+	updated,
+	error
+}
 
 class VerifyUpdater : UpdaterBase
 {
@@ -15,7 +22,7 @@ class VerifyUpdater : UpdaterBase
 		_req = req;
 		_helpers = new UpdaterHelpers;
 
-		_func = TimerFunc(Duration.init, &onRequest);
+		_func = TimerFunc(Duration.init, &createRequest);
 	}
 
 	override bool onStart()
@@ -23,13 +30,13 @@ class VerifyUpdater : UpdaterBase
 		logger.info!`verifying update ...`;
 		loop;
 
-		if (_hasUpdate)
+		if (_state == State.ok)
 		{
-			logger.fatal!`newer version found`;
+			stderr.write(UPDATED_TOKEN);
 		}
 		else
 		{
-			stderr.write(UPDATED_TOKEN);
+			logger.fatal!`cannot check if current version is up to date`;
 		}
 
 		return true;
@@ -41,21 +48,17 @@ class VerifyUpdater : UpdaterBase
 	}
 
 protected:
-	bool onCheck(Blob, SysTime date)
+	void onRequest(Job j) => j.noBody;
+
+	Duration doUpdate(Blob, SysTime)
 	{
-		_hasUpdate = _helpers.dateModified != date;
-		return true;
+		assert(false);
 	}
 
 final:
 	void loop() => timerLoop(&loopImpl);
 
-	void reset(Duration delay = RETRY_DELAY) nothrow
-	{
-		_func = TimerFunc(delay, &onRequest);
-	}
-
-	bool _hasUpdate;
+	State _state = State.error;
 
 	TimerFunc _func;
 	UpdaterHelpers _helpers;
@@ -70,36 +73,58 @@ private:
 		throwError!`missing %s header in response`(Header.lastModified);
 	}
 
-	void onRequest()
+	void createRequest()
 	{
-		auto j = _req.create(_url);
+		auto e = _req.create(_url);
 
-		j.header(Header.ifModifiedSince, _helpers.dateModified.toHttpDate);
-		j.onComplete = &onResponse;
+		e.header(Header.ifModifiedSince, _helpers.dateModified.toHttpDate);
+		e.onComplete = &onResponse;
+
+		onRequest(e);
 	}
 
 	void onResponse(Job e)
 	{
-		if (!e.hasError)
-		{
-			try
-			{
-				auto date = srTime(e);
-				auto data = e.code == 304 ? null : e.data;
+		auto delay = RETRY_DELAY;
 
-				if (onCheck(data, date))
-				{
-					_done = true;
-					return;
-				}
-			}
-			catch (Exception ex)
-			{
-				logger.error(ex.msg);
-			}
+		scope (exit)
+		{
+			_func = TimerFunc(delay, &createRequest);
 		}
 
-		reset;
+		if (e.hasError)
+		{
+			if (_retries >= RETRY_COUNT)
+			{
+				_done = true; // give up
+			}
+			else
+				_retries++;
+
+			return;
+		}
+
+		try
+		{
+			auto date = srTime(e);
+			auto data = e.code == 304 ? null : e.data;
+
+			if (date == _helpers.dateModified)
+			{
+				_state = State.ok;
+			}
+			else
+			{
+				delay = doUpdate(data, date);
+				_state = State.updated;
+			}
+
+			_done = true;
+		}
+		catch (Exception ex)
+		{
+			logger.error(ex.msg);
+		}
 	}
 
 	bool loopImpl()
@@ -116,4 +141,5 @@ private:
 	Requests _req;
 
 	bool _done;
+	ubyte _retries;
 }

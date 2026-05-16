@@ -1,4 +1,4 @@
-import std, utile.log, utile.net, utile.curl, utile.web, utile.time.app;
+import std, utile.log, utile.net, utile.curl, utile.web, utile.time.app, utile.net.headers;
 
 enum PORT = 23_769;
 
@@ -39,7 +39,8 @@ unittest
 	scope req = new Requests(logger);
 	scope web = new WebServer(PORT, 10.seconds, logger);
 
-	web.headerIP = `X-Forwarded-For`;
+	web.setClientIP(HeaderNormalized.xForwardedFor);
+
 	web.routes[`/hehe`][`GET`] = (conn) => new Handler(conn);
 
 	auto e = req.create(format!`http://127.0.0.1:%u/hehe?foo=bar`(PORT));

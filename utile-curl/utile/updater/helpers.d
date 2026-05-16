@@ -52,7 +52,7 @@ final class UpdaterHelpers
 		rename(tmp, _exe);
 	}
 
-	bool verify(SubLogger logger)
+	void verify(SubLogger logger)
 	{
 		auto inp = File.tmpfile;
 		auto output = File.tmpfile;
@@ -71,11 +71,12 @@ final class UpdaterHelpers
 
 		if (code || error.asTxt != UPDATED_TOKEN)
 		{
-			logger.error!"verification failed with code %d:\n%s"(code, output.asTxt);
-			return false;
-		}
+			logger.error!"process exited with code %d:\n%s"(code, output.asTxt);
 
-		return true;
+			throwError!`verification failed`;
+		}
+		else
+			logger.info2!`update verified successfully`;
 	}
 
 private:

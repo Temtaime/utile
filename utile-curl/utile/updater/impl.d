@@ -20,36 +20,28 @@ final class Updater : VerifyUpdater
 	{
 		_helpers.cleanup;
 		loop;
-		return _hasUpdate;
+		return _state == State.updated;
 	}
 
 	override void check() => _func.check;
 protected:
-	override bool onCheck(Blob data, SysTime date)
+	override void onRequest(Job)
 	{
-		if (data.empty)
-		{
-			reset(_delay);
-			return true;
-		}
+	}
 
+	override Duration doUpdate(Blob data, SysTime date)
+	{
 		logger.info2!`update found !`;
 		logger.info3!`verifying downloaded binary ...`;
 
 		_helpers.unpack(data, date);
+		_helpers.verify(logger);
+		_helpers.apply;
 
-		if (_helpers.verify(logger))
-		{
-			logger.info2!`update verified successfully`;
+		// exit app immediately after update is applied
+		_onUpdate();
 
-			_helpers.apply;
-			_onUpdate();
-			_hasUpdate = true;
-
-			return true;
-		}
-
-		return false;
+		return _delay;
 	}
 
 private:

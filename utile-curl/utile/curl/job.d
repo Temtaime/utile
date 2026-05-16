@@ -5,7 +5,7 @@ import std, core.atomic, core.sync.event, core.sync.mutex, core.thread, core.tim
 
 import std : min, max;
 
-import utile.mem, utile.net;
+import utile.mem, utile.net, utile.net.headers;
 import utile.curl.base;
 
 final class Job : JobBase
