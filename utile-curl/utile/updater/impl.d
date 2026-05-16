@@ -2,11 +2,11 @@ module utile.updater.impl;
 
 import std, utile, utile.curl, utile.updater.helpers;
 
-import utile.updater, utile.updater.verify;
+import utile.updater, utile.updater.net;
 
 package:
 
-final class Updater : VerifyUpdater
+final class Updater : NetUpdater
 {
 	this(string url, Requests req, void delegate() onUpdate, Duration delay)
 	{
@@ -20,10 +20,9 @@ final class Updater : VerifyUpdater
 	{
 		_helpers.cleanup;
 		loop;
-		return _state == State.updated;
+		return state == State.updated;
 	}
 
-	override void check() => _func.check;
 protected:
 	override void onRequest(Job)
 	{
