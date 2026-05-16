@@ -29,7 +29,9 @@ protected:
 	{
 	}
 
-	override Duration doUpdate(Blob data, SysTime date)
+	override Duration checkDelay() nothrow => _delay;
+
+	override void doUpdate(Blob data, SysTime date)
 	{
 		logger.info2!`update found !`;
 		logger.info3!`verifying downloaded binary ...`;
@@ -40,8 +42,6 @@ protected:
 
 		// exit app immediately after update is applied
 		_onUpdate();
-
-		return _delay;
 	}
 
 private:

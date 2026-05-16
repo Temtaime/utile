@@ -49,8 +49,9 @@ class VerifyUpdater : UpdaterBase
 
 protected:
 	void onRequest(Job j) => j.noBody;
+	Duration checkDelay() nothrow => RETRY_DELAY;
 
-	Duration doUpdate(Blob, SysTime)
+	void doUpdate(Blob, SysTime)
 	{
 		assert(false);
 	}
@@ -115,16 +116,18 @@ private:
 			}
 			else
 			{
-				delay = doUpdate(data, date);
+				doUpdate(data, date);
 				_state = State.updated;
 			}
 
-			_done = true;
+			delay = checkDelay;
 		}
 		catch (Exception ex)
 		{
 			logger.error(ex.msg);
 		}
+
+		_done = true;
 	}
 
 	bool loopImpl()
