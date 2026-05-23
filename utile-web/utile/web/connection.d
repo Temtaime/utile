@@ -5,7 +5,7 @@ import std.socket : Address, InternetAddress, Internet6Address, parseAddress, so
 
 import utile_microhttpd;
 
-alias Sender = int delegate(ulong pos, ubyte[] chunk);
+alias WriteFunc = int delegate(ulong pos, ubyte[] chunk);
 
 final class WebConnection
 {
@@ -21,7 +21,7 @@ final class WebConnection
 		queueResponse(response, code);
 	}
 
-	void send(uint chunkSize, Sender dg)
+	void send(uint chunkSize, WriteFunc dg)
 	{
 		auto ctx = new ReaderContext(dg, this);
 		gcRetain(ctx, true);

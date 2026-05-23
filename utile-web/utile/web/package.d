@@ -8,7 +8,7 @@ public import utile.web.connection;
 
 final class WebServer
 {
-	this(ushort port, Duration connectionTimeout, Logger parent)
+	this(ushort port, Duration connectionTimeout, LoggerBase parent)
 	{
 		_daemon = MHD_start_daemon(
 			MHD_USE_ERROR_LOG | MHD_USE_NO_THREAD_SAFETY,
@@ -22,9 +22,10 @@ final class WebServer
 		);
 
 		_daemon || throwError!`failed to start HTTP daemon on port %u`(port);
-		_logger = new SubLogger(parent, format!`HTTP:%u`(port));
 
 		routes[null][null] = toDelegate(&createHandler404);
+
+		log = new SubLogger(parent, format!`HTTP:%u`(port));
 	}
 
 	~this()
@@ -50,6 +51,8 @@ final class WebServer
 	{
 		_ipHeader = header;
 	}
+
+	SubLogger log;
 
 	//
 	// routes[`/hello`][`GET`] = (conn) => new MyWebHandler(conn);
@@ -81,7 +84,5 @@ package:
 	}
 
 	string _ipHeader;
-	SubLogger _logger;
-
 	MHD_Daemon* _daemon;
 }

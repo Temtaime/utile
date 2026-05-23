@@ -4,6 +4,7 @@ import std.datetime, std.conv, std.range, std.string, std.algorithm, std.excepti
 import utile.log.base;
 
 public import utile.log.sub;
+public import utile.log.base;
 
 abstract class Logger : LoggerBase
 {

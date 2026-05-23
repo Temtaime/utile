@@ -29,9 +29,9 @@ abstract class NetUpdater : UpdaterBase
 	override void check() => _func.check;
 
 protected:
-	void onRequest(Job j);
 	Duration checkDelay() nothrow;
 
+	void onRequest(Job);
 	void doUpdate(Blob, SysTime);
 
 final:

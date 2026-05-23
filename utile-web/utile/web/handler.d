@@ -53,11 +53,11 @@ auto createHandler403(WebConnection conn) => new HandlerErrorCode(conn, 403, `Fo
 auto createHandler404(WebConnection conn) => new HandlerErrorCode(conn, 404, `Not Found`);
 auto createHandler500(WebConnection conn) => new HandlerErrorCode(conn, 500, `Internal Server Error`);
 
-static extern (C):
+package static extern (C):
 
 struct ReaderContext
 {
-	Sender sender;
+	WriteFunc sender;
 	WebConnection conn;
 }
 
@@ -156,11 +156,11 @@ MHD_Result createResponse(
 		try
 		{
 			conn = new WebConnection(connection, url.fromStringz.idup, method.fromStringz.idup);
-			conn.initialize(_ipHeader, _logger);
+			conn.initialize(_ipHeader, log);
 		}
 		catch (Exception e)
 		{
-			_logger.error!`failed to initialize connection: %s`(e.msg);
+			log.error!`failed to initialize connection: %s`(e.msg);
 			return MHD_NO;
 		}
 

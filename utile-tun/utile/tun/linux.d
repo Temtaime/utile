@@ -10,12 +10,12 @@ version (linux)
 
 final class LinuxTunDevice : TunDevice
 {
-	this(string name, Logger parent)
+	this(string name, LoggerBase parent)
 	{
 		_name = name;
 
-		logger = new SubLogger(parent, _name);
-		logger.info!`creating tun ...`;
+		log = new SubLogger(parent, _name);
+		log.info!`creating tun ...`;
 
 		version (linux)
 		{
@@ -28,7 +28,7 @@ final class LinuxTunDevice : TunDevice
 
 	~this()
 	{
-		logger.info!`tun shutting down ...`;
+		log.info!`tun shutting down ...`;
 
 		version (linux)
 		{
@@ -43,7 +43,7 @@ final class LinuxTunDevice : TunDevice
 			return;
 		}
 
-		logger.info!`configuring: MTU %u, IP %s/%u`(s.mtu, s.ip.ipToString, s.prefix);
+		log.info!`configuring: MTU %u, IP %s/%u`(s.mtu, s.ip.ipToString, s.prefix);
 
 		version (linux)
 		{
@@ -55,7 +55,7 @@ final class LinuxTunDevice : TunDevice
 
 	void write(const(ubyte)[] data)
 	{
-		logger.dbg!`writing %u bytes`(data.length);
+		log.dbg!`writing %u bytes`(data.length);
 
 		version (linux)
 		{
@@ -74,7 +74,7 @@ final class LinuxTunDevice : TunDevice
 				return null;
 			}
 
-			logger.dbg!`read %u bytes`(n);
+			log.dbg!`read %u bytes`(n);
 
 			assert(n >= MIN_FRAME && n <= MAX_FRAME);
 
@@ -88,7 +88,7 @@ final class LinuxTunDevice : TunDevice
 
 	mixin IpUtil;
 
-	SubLogger logger;
+	SubLogger log;
 private:
 	mixin publicProperty!(int, `fd`);
 
@@ -109,7 +109,7 @@ mixin template IpUtil()
 			auto s = ip.ipToString;
 			auto cmd = [`ip`, `addr`, `add`, s ~ `/` ~ prefix.to!string, `dev`, _name];
 
-			logger.info2!`adding IP %s/%u`(s, prefix);
+			log.info2!`adding IP %s/%u`(s, prefix);
 
 			auto result = execute(cmd);
 			result.status && throwError!`failed to add IP %s to %s: %s`(s, _name, result.output);
@@ -121,7 +121,7 @@ mixin template IpUtil()
 		auto tableStr = table.to!string;
 		auto markStr = value.to!string;
 
-		logger.info2!`setting up fwmark %u for table %u`(value, table);
+		log.info2!`setting up fwmark %u for table %u`(value, table);
 
 		// clean table
 		[`ip`, `route`, `flush`, `table`, tableStr].execute;

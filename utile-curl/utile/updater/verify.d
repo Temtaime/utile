@@ -34,9 +34,8 @@ final class VerifyUpdater : NetUpdater
 	override void check() => assert(false);
 
 protected:
-	override void onRequest(Job j) => j.noBody;
-
 	override Duration checkDelay() nothrow => RETRY_DELAY;
 
+	override void onRequest(Job j) => j.noBody;
 	override void doUpdate(Blob, SysTime) => assert(false);
 }

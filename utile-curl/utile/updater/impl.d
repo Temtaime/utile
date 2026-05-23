@@ -24,11 +24,11 @@ final class Updater : NetUpdater
 	}
 
 protected:
+	override Duration checkDelay() nothrow => _delay;
+
 	override void onRequest(Job)
 	{
 	}
-
-	override Duration checkDelay() nothrow => _delay;
 
 	override void doUpdate(Blob data, SysTime date)
 	{
