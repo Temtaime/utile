@@ -11,15 +11,7 @@ abstract class WebHandler
 		conn = conn_;
 	}
 
-	void onCreate()
-	{
-	}
-
 	abstract void onResponse();
-
-	void onComplete()
-	{
-	}
 
 	// used for receiving request body
 	void onReceive(in ubyte[] chunk)
@@ -47,13 +39,11 @@ private:
 	ushort _code;
 }
 
-nothrow:
-
 auto createHandler403(WebConnection conn) => new HandlerErrorCode(conn, 403, `Forbidden`);
 auto createHandler404(WebConnection conn) => new HandlerErrorCode(conn, 404, `Not Found`);
 auto createHandler500(WebConnection conn) => new HandlerErrorCode(conn, 500, `Internal Server Error`);
 
-package static extern (C):
+nothrow package static extern (C):
 
 struct ReaderContext
 {
@@ -91,7 +81,7 @@ void completeRequest(void* cls, MHD_Connection* connection, void** req_cls, MHD_
 
 	try
 	{
-		handler.onComplete;
+		handler.destroy;
 	}
 	catch (Exception e)
 	{
@@ -165,13 +155,13 @@ MHD_Result createResponse(
 		}
 
 		auto l = conn.logger;
-		auto h = find(conn.method, conn.url)(conn);
+		WebHandler h;
 
 		l.info!`got a new request: %s %s`(conn.method, conn.url);
 
 		try
 		{
-			h.onCreate;
+			h = find(conn.method, conn.url)(conn);
 		}
 		catch (Exception e)
 		{

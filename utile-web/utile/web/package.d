@@ -3,6 +3,7 @@ module utile.web;
 import std.datetime, std.string, std.functional, utile, utile.net, utile.net.headers;
 import utile_microhttpd;
 
+public import utile.web.codes;
 public import utile.web.handler;
 public import utile.web.connection;
 
@@ -57,7 +58,7 @@ final class WebServer
 	//
 	// routes[`/hello`][`GET`] = (conn) => new MyWebHandler(conn);
 	//
-	nothrow WebHandler delegate(WebConnection)[string][string] routes;
+	WebHandler delegate(WebConnection)[string][string] routes;
 package:
 	alias F = utile_microhttpd.fd_set;
 

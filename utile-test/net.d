@@ -4,13 +4,10 @@ enum PORT = 23_769;
 
 final class Handler : WebHandler
 {
-	this(WebConnection conn) nothrow
+	this(WebConnection conn)
 	{
 		super(conn);
-	}
 
-	override void onCreate()
-	{
 		assert(conn.url == `/hehe`);
 		assert(conn.method == `GET`);
 		assert(conn.addr.toAddrString == `1.1.1.1`);
@@ -21,16 +18,16 @@ final class Handler : WebHandler
 		conn.logger.info!`handler created: %s`(conn.url);
 	}
 
+	~this()
+	{
+		conn.logger.info!`handler completed: %s`(conn.url);
+	}
+
 	override void onResponse()
 	{
 		conn.send(200, `hello world`);
 
 		conn.logger.info!`handler responded: %s`(conn.url);
-	}
-
-	override void onComplete()
-	{
-		conn.logger.info!`handler completed: %s`(conn.url);
 	}
 }
 
