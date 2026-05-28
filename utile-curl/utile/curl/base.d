@@ -19,6 +19,8 @@ protected:
 	mixin publicProperty!(bool, `paused`);
 	mixin publicProperty!(long, `contentLength`, `-1`);
 
+	mixin publicProperty!(Blob, `data`);
+
 	mixin publicProperty!(ushort, `code`);
 	mixin publicProperty!(string[string], `responseHeaders`);
 
@@ -40,11 +42,7 @@ protected:
 	void optget(T)(CURLINFO opt, ref T value) => optget(_handle, opt, value);
 
 	CURL* _handle;
-
-	Blob _data;
 	Blob _postdata;
-
-	ulong _received;
 }
 
 void checkError(SubLogger logger, CURLcode code, string msg)
@@ -189,13 +187,11 @@ size_t writerFunc(ubyte* tmp, size_t size, size_t blocks, void* userdata)
 				return code;
 
 			default:
-				_received += sz;
 				return code;
 			}
 		}
 
 		_data ~= chunk;
-		_received += sz;
 
 		return sz;
 	}

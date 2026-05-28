@@ -108,12 +108,6 @@ final class Job : JobBase
 		_paused = false;
 	}
 
-	const data() @property
-	{
-		_hasError && throwError!`cannot get data of failed job`;
-		return _data;
-	}
-
 	uint delegate(Job, ubyte[] data) onRead;
 	uint delegate(Job, ubyte[] data) onWrite;
 
