@@ -3,7 +3,6 @@ module utile.web;
 import std.datetime, std.string, std.functional, utile, utile.net, utile.net.headers;
 import utile_microhttpd;
 
-public import utile.web.codes;
 public import utile.web.handler;
 public import utile.web.connection;
 

@@ -192,7 +192,6 @@ size_t writerFunc(ubyte* tmp, size_t size, size_t blocks, void* userdata)
 		}
 
 		_data ~= chunk;
-
 		return sz;
 	}
 }
