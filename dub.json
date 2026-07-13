@@ -5,6 +5,9 @@
 		"Temtaime"
 	],
 	"description": "Useful things for D",
+	"environments-linux": {
+		"CC": "clang -fuse-ld=lld -w"
+	},
 	"subPackages": [
 		{
 			"name": "curl",

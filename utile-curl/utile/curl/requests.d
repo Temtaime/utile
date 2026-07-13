@@ -71,7 +71,7 @@ final class Requests
 		checkErrorM(false, mc, `wait`);
 	}
 
-	void run()
+	bool run()
 	{
 		int running;
 
@@ -79,6 +79,8 @@ final class Requests
 			auto mc = curl_multi_perform(_m, &running);
 			checkErrorM(true, mc, `perform`);
 		}
+
+		bool res;
 
 		while (true)
 		{
@@ -91,9 +93,18 @@ final class Requests
 			if (m.msg != CURLMSG_DONE)
 				continue;
 
+			res = true;
+
 			auto e = Job.fromHandle(m.easy_handle);
 			removeJob(e, m.data.result);
 		}
+
+		return res;
+	}
+
+	void wakeup() nothrow @nogc
+	{
+		curl_multi_wakeup(_m);
 	}
 
 	void abort(Job j)
