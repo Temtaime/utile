@@ -175,7 +175,8 @@ private:
 		}
 
 		sqlite3_stmt* stmt;
-		sqlite3_prepare_v2(_db, sql.toStringz, cast(uint)sql.length, &stmt, null) == SQLITE_OK || error(sql);
+
+		sqlite3_prepare_v2(_db, sql.ptr, cast(uint)sql.length, &stmt, null) == SQLITE_OK || error(sql);
 
 		return _cache[sql] = stmt;
 	}
@@ -199,6 +200,8 @@ private:
 private:
 	uint doBind(T)(sqlite3_stmt* stmt, uint idx, const T v)
 	{
+		static immutable ubyte z;
+
 		static if (is(T == U*, U) || is(T == typeof(null)))
 		{
 			if (v)
@@ -218,12 +221,10 @@ private:
 		}
 		else static if (is(T == string))
 		{
-			char z;
-			return sqlite3_bind_text(stmt, idx, v.ptr ? v.ptr : &z, cast(uint)v.length, SQLITE_TRANSIENT);
+			return sqlite3_bind_text(stmt, idx, v.ptr ? v.ptr : cast(char*)&z, cast(uint)v.length, SQLITE_TRANSIENT);
 		}
 		else static if (is(T == Blob))
 		{
-			ubyte z;
 			return sqlite3_bind_blob64(stmt, idx, v.ptr ? v.ptr : &z, v.length, SQLITE_TRANSIENT);
 		}
 		else
@@ -233,6 +234,7 @@ private:
 	void reset(sqlite3_stmt* stmt)
 	{
 		sqlite3_reset(stmt);
+		sqlite3_clear_bindings(stmt);
 	}
 
 	void remove(sqlite3_stmt* stmt)
@@ -247,7 +249,15 @@ private:
 		return res == SQLITE_ROW;
 	}
 
-	noreturn error(sqlite3_stmt* stmt) => error(sqlite3_sql(stmt).fromStringz.idup);
+	string dump(sqlite3_stmt* stmt)
+	{
+		auto p = sqlite3_expanded_sql(stmt);
+		string res = p.fromStringz.idup;
+		sqlite3_free(p);
+		return res;
+	}
+
+	noreturn error(sqlite3_stmt* stmt) => error(dump(stmt));
 
 	noreturn error(string sql = null)
 	{
