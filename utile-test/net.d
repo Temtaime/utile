@@ -44,7 +44,6 @@ unittest
 
 	auto aa = [`cookie`: `chocolate`];
 	e.cookies(aa);
-
 	e.header(`X-Forwarded-For`, `1.1.1.1`);
 
 	for (scope ts = new ThreeSet; !e.done; appTime.update)
@@ -63,4 +62,21 @@ unittest
 	assert(!e.hasError);
 	assert(e.code == 200);
 	assert(e.data == `hello world`);
+}
+
+unittest
+{
+	scope req = new Requests(logger);
+
+	auto e = req.create(`https://google.com`);
+
+	while (!e.done)
+	{
+		req.wait;
+		req.run;
+	}
+
+	assert(!e.hasError);
+	assert(e.code == 200);
+	assert(!e.data.empty);
 }
