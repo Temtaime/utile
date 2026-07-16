@@ -30,7 +30,8 @@ else
 	#gh release download --repo lexiforest/curl-impersonate --archive zip
 	#unzip *.zip
 	#rm *.zip
-	#cd curl-impersonate-*
+	#mv curl-impersonate-* curl-impersonate
+	#cd curl-impersonate
 
 	git clone https://github.com/lexiforest/curl-impersonate.git
 	cd curl-impersonate

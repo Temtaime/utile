@@ -77,8 +77,21 @@ jobs:
           if-no-files-found: error
 
   build-windows-curl:
-    runs-on: windows-latest
+    runs-on: windows-2022
     steps:
+      - uses: al-cheb/configure-pagefile-action@v1.3
+        with:
+          disk-root: "C:"
+          minimum-size: 16GB
+          maximum-size: 16GB
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - shell: cmd
+        run: choco install nasm -y
+
       - uses: actions/checkout@v4
 
       - run: ./curl-impersonate.sh
@@ -87,33 +100,26 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
-      - uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x64
-
-      - run: |
-          cd curl-impersonate
-          win\build.bat vcvars64
+      - run: win\build.bat vcvars64
         shell: cmd
+        working-directory: curl-impersonate
 
       - run: |
-          cd curl-impersonate\packages
-
           del lib\zlib.lib
           del lib\libcurl-impersonate_imp.lib
 
           lib /OUT:curl.lib lib\*.lib
         shell: cmd
+        working-directory: curl-impersonate/packages
 
       - run: |
-          cd curl-impersonate/packages
-
           DIR=$DST/include/curl
           mkdir -p $DIR
 
           mv include/curl/* $DIR
           mv curl.lib $DST_LIB
         shell: bash
+        working-directory: curl-impersonate/packages
 
       - uses: actions/upload-artifact@v4
         with:
