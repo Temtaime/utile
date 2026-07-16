@@ -68,7 +68,7 @@ unittest
 {
 	scope req = new Requests(logger);
 
-	auto e = req.create(`https://google.com`);
+	auto e = req.create(`https://httpbin.org/get`);
 
 	while (!e.done)
 	{
