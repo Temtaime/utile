@@ -40,6 +40,4 @@ else
 
 	# cmake removes NDEBUG, so force it in common flags too
 	for p in DST DST_LIB CFLAGS CXXFLAGS C_FLAGS CXX_FLAGS; do echo "$p=$(eval echo \$$p)" >> $GITHUB_ENV; done
-
-	./win/deps.sh
 fi
