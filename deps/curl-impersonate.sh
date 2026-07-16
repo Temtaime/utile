@@ -27,28 +27,16 @@ then
 else
 	cd ..
 
-	gh release download --repo lexiforest/curl-impersonate --archive zip
-	unzip *.zip
-	rm *.zip
-	cd curl-impersonate-*
+	#gh release download --repo lexiforest/curl-impersonate --archive zip
+	#unzip *.zip
+	#rm *.zip
+	#cd curl-impersonate-*
 
-	pip install pyyaml
-	python - > env.sh <<- EOF
-		import yaml
+	git clone https://github.com/lexiforest/curl-impersonate.git
+	cd curl-impersonate
 
-		with open('.github/workflows/build-win.yaml', 'r', encoding='utf-8') as f:
-		    data = yaml.safe_load(f)
-
-		env = data.get('env', {})
-
-		for k, v in env.items():
-		    print(f'export {k}="{v}"')
-	EOF
-
-	source ./env.sh
-
-	perl -i -pe "\$c+=s/^(set cmake_common_args)=/\$1=-DCMAKE_C_FLAGS_RELEASE=\"$CFLAGS\" /;END{exit(not \$c)}" win/build.bat
-	perl -i -pe "\$c+=s/^(set cmake_common_args)=/\$1=-DCMAKE_CXX_FLAGS_RELEASE=\"$CXXFLAGS\" /;END{exit(not \$c)}" win/build.bat
+	perl -i -pe "\$c+=s/(-GNinja)/\$1 -DCMAKE_C_FLAGS_RELEASE=\"$CFLAGS\"/;END{exit(not \$c)}" win/build.bat
+	perl -i -pe "\$c+=s/(-GNinja)/\$1 -DCMAKE_CXX_FLAGS_RELEASE=\"$CXXFLAGS\"/;END{exit(not \$c)}" win/build.bat
 
 	# cmake removes NDEBUG, so force it in common flags too
 	for p in DST DST_LIB CFLAGS CXXFLAGS C_FLAGS CXX_FLAGS; do echo "$p=$(eval echo \$$p)" >> $GITHUB_ENV; done
