@@ -88,7 +88,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
       - run: |
-          #cd curl-impersonate-*
           cd curl-impersonate
           win\build.bat vcvars64
         shell: cmd
