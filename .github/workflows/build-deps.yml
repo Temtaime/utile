@@ -105,10 +105,8 @@ jobs:
         working-directory: curl-impersonate
 
       - run: |
-          del lib\zlib.lib
-          del lib\libcurl-impersonate_imp.lib
-
-          lib /OUT:curl.lib lib\*.lib
+          dir
+          mv libcurl-impersonate.lib curl.lib
         shell: cmd
         working-directory: curl-impersonate/packages
 
