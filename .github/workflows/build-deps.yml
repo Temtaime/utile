@@ -106,9 +106,9 @@ jobs:
 
       - run: |
           dir
-          mv libcurl-impersonate.lib curl.lib
+          mv libcurl-impersonate.lib ../curl.lib
         shell: cmd
-        working-directory: curl-impersonate/packages
+        working-directory: curl-impersonate/packages/lib
 
       - run: |
           DIR=$DST/include/curl
