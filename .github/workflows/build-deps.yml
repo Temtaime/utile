@@ -87,19 +87,17 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
-      - run: |
-          dir
-          cd curl-impersonate
-          dir
-          win\build.bat vcvars64
-        shell: cmd
-
       - uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
 
       - run: |
-          cd curl-impersonate-*\packages
+          cd curl-impersonate
+          win\build.bat vcvars64
+        shell: cmd
+
+      - run: |
+          cd curl-impersonate\packages
 
           del lib\zlib.lib
           del lib\libcurl-impersonate_imp.lib
@@ -108,7 +106,7 @@ jobs:
         shell: cmd
 
       - run: |
-          cd curl-impersonate-*/packages
+          cd curl-impersonate/packages
 
           DIR=$DST/include/curl
           mkdir -p $DIR
