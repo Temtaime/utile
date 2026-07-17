@@ -1,6 +1,9 @@
 name: build deps
 
 on:
+  push:
+    branches: [ main ]
+    paths: [ .github/workflows/build-deps.yml ]
   workflow_dispatch:
 
 jobs:
@@ -109,13 +112,12 @@ jobs:
           arch: x64
 
       - run: |
-          cd build/deps/install
-          dir /s
+          set deps=..\build\deps\install\lib
 
-          del zlib.lib
-          lib /OUT:curl.lib lib\*.lib libcurl-impersonate.lib
+          del %deps%\zlib.lib
+          lib /OUT:curl.lib %deps%\*.lib lib/libcurl-impersonate.lib
         shell: cmd
-        working-directory: curl-impersonate
+        working-directory: curl-impersonate/packages
 
       - run: |
           DIR=$DST/include/curl
