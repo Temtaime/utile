@@ -702,7 +702,7 @@
 #define PACKAGE_NAME "GNU libmicrohttpd"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "GNU libmicrohttpd 1.0.5"
+#define PACKAGE_STRING "GNU libmicrohttpd 1.0.6"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "libmicrohttpd"
@@ -711,7 +711,7 @@
 #define PACKAGE_URL "https://www.gnu.org/software/libmicrohttpd/"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "1.0.5"
+#define PACKAGE_VERSION "1.0.6"
 
 /* Define to necessary symbol if this constant uses a non-standard name on
    your system. */
@@ -757,7 +757,7 @@
 #define USE_IPV6_TESTING 1
 
 /* Version number of package */
-#define VERSION "1.0.5"
+#define VERSION "1.0.6"
 
 /* This is a Windows system */
 /* #undef WINDOWS */
