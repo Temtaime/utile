@@ -104,11 +104,18 @@ jobs:
         shell: cmd
         working-directory: curl-impersonate
 
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
       - run: |
+          cd build/deps/install
           dir /s
-          mv libcurl-impersonate.lib ../curl.lib
+
+          del zlib.lib
+          lib /OUT:curl.lib lib\*.lib libcurl-impersonate.lib
         shell: cmd
-        working-directory: curl-impersonate/packages/lib
+        working-directory: curl-impersonate
 
       - run: |
           DIR=$DST/include/curl
