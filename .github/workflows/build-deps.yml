@@ -113,11 +113,7 @@ jobs:
 
       - run: |
           set deps=..\build\deps\install\lib
-
-          cd %deps%
-          dir
-
-          del %deps%\zlib.lib
+          del %deps%\zlib*
           lib /OUT:curl.lib %deps%\*.lib lib\libcurl-impersonate.lib
         shell: cmd
         working-directory: curl-impersonate/packages
