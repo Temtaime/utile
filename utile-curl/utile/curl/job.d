@@ -28,6 +28,8 @@ final class Job : JobBase
 		option(CURLOPT_UPLOAD_BUFFERSIZE, sz);
 	}
 
+	void userAgent(string ua) => option(CURLOPT_USERAGENT, ua);
+
 	void etag(string etag) => header(Header.ifMatch, etag);
 
 	void header(string header, string value)
