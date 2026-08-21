@@ -34,7 +34,7 @@ final class Job : JobBase
 
 	void header(string header, string value)
 	{
-		auto p = format!`%s: %s`(header, value);
+		string p = format!`%s: %s`(header, value);
 
 		_headers = curl_slist_append(_headers, p.toStringz);
 		option(CURLOPT_HTTPHEADER, _headers);
@@ -56,7 +56,7 @@ final class Job : JobBase
 			curl_free(p);
 		}
 
-		option(CURLOPT_COOKIE, s.toStringz);
+		option(CURLOPT_COOKIE, s);
 	}
 
 	void version_(Alpn v) => option(CURLOPT_HTTP_VERSION, v);
