@@ -67,7 +67,7 @@ final class Requests
 
 	void wait(Duration timeout = 1.seconds)
 	{
-		auto mc = curl_multi_wait(_m, null, 0, timeout.toMsecs, null);
+		auto mc = curl_multi_poll(_m, null, 0, timeout.toMsecs, null);
 		checkErrorM(false, mc, `wait`);
 	}
 
