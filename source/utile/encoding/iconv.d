@@ -1,38 +1,51 @@
 module utile.encoding.iconv;
-import std.conv, std.string, std.encoding, core.stdc.errno, utile.except;
+
+import std, core.stdc.errno, utile.except;
 
 version (linux):
 
-import utile_iconv;
-
 string convert(string s, string from, string to)
 {
-	auto query = to ~ `//IGNORE//TRANSLIT`;
-	auto iv = iconv_open(query.toStringz, from.toStringz);
+	auto iv = libiconv_open(to.toStringz, from.toStringz);
 
-	cast(ptrdiff_t)iv != -1 || throwError!`can't convert from %s to %s`(from, to);
+	if (iv == size_t.max)
+	{
+		throwError!`iconv does not support %s -> %s`(from, to);
+	}
 
 	scope (exit)
 	{
-		iconv_close(iv);
+		libiconv_close(iv);
 	}
 
-	auto p = s.ptr;
+	auto src = s.ptr;
 	auto len = s.length;
 
-	string res;
+	string r;
 	char[2048] tmp = void;
 
 	while (len)
 	{
-		auto b = tmp.ptr;
-		auto bs = tmp.length;
+		auto dst = tmp.ptr;
+		auto size = tmp.length;
 
-		auto c = iconv(iv, cast(char**)&p, &len, &b, &bs);
+		auto res = libiconv(iv, cast(char**)&src, &len, &dst, &size);
 
-		c != size_t.max || errno == E2BIG || throwError(`conversion error`);
-		res ~= tmp[0 .. $ - bs];
+		if (res == size_t.max && errno != E2BIG)
+		{
+			throwError!`conversion error`;
+		}
+
+		r ~= tmp[0 .. $ - size];
 	}
 
-	return res;
+	return r;
 }
+
+alias iconv_t = size_t;
+
+extern (C):
+
+iconv_t libiconv_open(const(char)* tocode, const(char)* fromcode);
+size_t libiconv(iconv_t cd, char** inbuf, size_t* inbytesleft, char** outbuf, size_t* outbytesleft);
+int libiconv_close(iconv_t cd);

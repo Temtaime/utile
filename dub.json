@@ -12,8 +12,8 @@
 		{
 			"name": "curl",
 			"description": "CURL binding",
-			"dflags": [
-				"-P-I$PACKAGE_DIR/deps/curl-impersonate/include"
+			"cImportPaths": [
+				"$PACKAGE_DIR/deps/curl-impersonate/include"
 			],
 			"libs-windows": [
 				"$PACKAGE_DIR/deps/curl-impersonate/curl-impersonate",
@@ -39,8 +39,8 @@
 		{
 			"name": "sqlite",
 			"description": "SQLite binding",
-			"dflags": [
-				"-P-I$PACKAGE_DIR/deps/sqlite/src"
+			"cImportPaths": [
+				"$PACKAGE_DIR/deps/sqlite/src"
 			],
 			"libs-windows": [
 				"$PACKAGE_DIR/deps/sqlite/sqlite"
@@ -61,8 +61,8 @@
 		{
 			"name": "zip",
 			"description": "Miniz binding",
-			"dflags": [
-				"-P-I$PACKAGE_DIR/deps/miniz/src"
+			"cImportPaths": [
+				"$PACKAGE_DIR/deps/miniz/src"
 			],
 			"libs-windows": [
 				"$PACKAGE_DIR/deps/miniz/miniz"
@@ -83,8 +83,8 @@
 		{
 			"name": "web",
 			"description": "MicroHTTPD binding",
-			"dflags": [
-				"-P-I$PACKAGE_DIR/deps/microhttpd/include"
+			"cImportPaths": [
+				"$PACKAGE_DIR/deps/microhttpd/include"
 			],
 			"libs-windows": [
 				"$PACKAGE_DIR/deps/microhttpd/microhttpd"
@@ -132,6 +132,9 @@
 			],
 			"importPaths": [
 				"utile-test"
+			],
+			"libs-linux": [
+				"iconv"
 			]
 		}
 	]

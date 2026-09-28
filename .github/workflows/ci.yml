@@ -48,9 +48,10 @@ jobs:
 
       - run: |
           apk update
-          apk add dub clang llvm lld           # build tools
-          apk add gcc libc++-static            # runtime
-          apk add zlib-static linux-headers    # deps
+          apk add dub clang llvm lld               # build tools
+          apk add gcc libc++-static                # runtime
+          apk add zlib-static linux-headers        # deps
+          apk add gnu-libiconv gnu-libiconv-dev    # iconv
 
           apk add $(echo ${{ matrix.compiler }} | tr -d '0-9') # compiler
 
