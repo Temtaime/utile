@@ -17,22 +17,26 @@ string convert(string s, string from, string to)
 		iconv_close(iv);
 	}
 
-	auto p = s.ptr;
+	auto src = s.ptr;
 	auto len = s.length;
 
-	string res;
+	string r;
 	char[2048] tmp = void;
 
 	while (len)
 	{
-		auto b = tmp.ptr;
-		auto bs = tmp.length;
+		auto dst = tmp.ptr;
+		auto size = tmp.length;
 
-		auto c = iconv(iv, cast(char**)&p, &len, &b, &bs);
+		int res = cast(int)iconv(iv, cast(char**)&src, &len, &dst, &size);
 
-		c != size_t.max || errno == E2BIG || throwError(`conversion error`);
-		res ~= tmp[0 .. $ - bs];
+		if (res < 0 && errno != E2BIG)
+		{
+			throwError!`conversion error`;
+		}
+
+		r ~= tmp[0 .. $ - size];
 	}
 
-	return res;
+	return r;
 }
