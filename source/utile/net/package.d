@@ -11,6 +11,16 @@ uint prefixToNetmask(ubyte prefix)
 	return mask.htonl;
 }
 
+void checkMtu(ushort mtu)
+{
+	mtu >= 68 && mtu <= 9000 || throwError!`invalid MTU size: %u`(mtu);
+}
+
+version (Emscripten)
+{
+}
+else:
+
 string ipToString(uint ip)
 {
 	return InternetAddress.addrToString(ip.ntohl);
@@ -22,9 +32,4 @@ uint parseIp(string ip)
 	res != InternetAddress.ADDR_NONE || throwError!`invalid IP address: %s`(ip);
 
 	return res.htonl;
-}
-
-void checkMtu(ushort mtu)
-{
-	mtu >= 68 && mtu <= 9000 || throwError!`invalid MTU size: %u`(mtu);
 }

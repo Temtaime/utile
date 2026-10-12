@@ -12,6 +12,14 @@
 				"kind": "build",
 				"isDefault": true
 			}
+		},
+		{
+			"label": "Build wasm",
+			"type": "shell",
+			"command": "dub build -a wasm32-unknown-emscripten --compiler=ldc2 :test",
+			"problemMatcher": [
+				"$dmd"
+			]
 		}
 	]
 }

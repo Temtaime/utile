@@ -6,7 +6,7 @@ string asTxt(ref File f)
 {
 	f.rewind;
 
-	auto res = new char[f.size];
+	auto res = new char[cast(size_t)f.size];
 	f.rawRead(res);
 
 	return res.assumeUnique;

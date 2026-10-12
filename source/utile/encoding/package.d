@@ -66,7 +66,11 @@ string decode(in void[] data, ushort cp)
 {
 	string r, src = cast(string)data;
 
-	version (linux)
+	version (Windows)
+	{
+		r = fromMBSz(src.toStringz, cp);
+	}
+	else
 	{
 		if (noNeed(data))
 		{
@@ -75,10 +79,6 @@ string decode(in void[] data, ushort cp)
 
 		string from = encodingsTable[cp];
 		r = convert(src, from, enc);
-	}
-	else
-	{
-		r = fromMBSz(src.toStringz, cp);
 	}
 
 	assert(r.isValid);
@@ -89,7 +89,11 @@ immutable(ubyte)[] encode(string src, ushort cp)
 {
 	assert(src.isValid);
 
-	version (linux)
+	version (Windows)
+	{
+		auto r = toMBSz(src, cp).fromStringz;
+	}
+	else
 	{
 		if (noNeed(src))
 		{
@@ -98,10 +102,6 @@ immutable(ubyte)[] encode(string src, ushort cp)
 
 		string to = encodingsTable[cp];
 		auto r = convert(src, enc, to);
-	}
-	else
-	{
-		auto r = toMBSz(src, cp).fromStringz;
 	}
 
 	return r.toByte;

@@ -2,11 +2,14 @@ module utile.encoding.iconv;
 
 import std, core.stdc.errno, utile.except;
 
-version (linux):
+version (Windows)
+{
+}
+else:
 
 string convert(string s, string from, string to)
 {
-	auto cd = libiconv_open(to.toStringz, from.toStringz);
+	auto cd = mixin(PREFIX ~ `iconv_open(to.toStringz, from.toStringz)`);
 
 	if (cd == size_t.max)
 	{
@@ -15,7 +18,7 @@ string convert(string s, string from, string to)
 
 	scope (exit)
 	{
-		libiconv_close(cd);
+		mixin(PREFIX ~ `iconv_close(cd);`);
 	}
 
 	auto src = s.ptr;
@@ -29,7 +32,7 @@ string convert(string s, string from, string to)
 		auto dst = tmp.ptr;
 		size_t _out = tmp.length;
 
-		size_t res = libiconv(cd, cast(char**)&src, &_in, &dst, &_out);
+		size_t res = mixin(PREFIX ~ `iconv(cd, cast(char**)&src, &_in, &dst, &_out)`);
 
 		if (res == size_t.max && errno != E2BIG)
 		{
@@ -44,8 +47,24 @@ string convert(string s, string from, string to)
 
 alias iconv_t = size_t;
 
+version (Emscripten)
+{
+	enum string PREFIX = null;
+}
+else
+{
+	enum string PREFIX = `lib`;
+}
+
 extern (C):
 
-iconv_t libiconv_open(const(char)*, const(char)*);
-size_t libiconv(iconv_t, char**, size_t*, char**, size_t*);
-int libiconv_close(iconv_t);
+mixin(`
+iconv_t `
+		~ PREFIX ~ `iconv_open(const(char)*, const(char)*);
+
+size_t `
+		~ PREFIX ~ `iconv(iconv_t, char**, size_t*, char**, size_t*);
+
+int `
+		~ PREFIX ~ `iconv_close(iconv_t);
+`);
