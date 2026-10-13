@@ -34,3 +34,12 @@ void gcRetain(T)(T ptr, bool value) if (Pred!T)
 	gcMark(ptr, value);
 	gcNoMove(ptr, value);
 }
+
+auto ignoreNoGC(F, A...)(F dg, A args)
+{
+	enum Attrs = functionAttributes!F | FunctionAttribute.nogc;
+	alias E = SetFunctionAttributes!(F, functionLinkage!F, Attrs);
+
+	auto p = cast(E)dg;
+	return p(args);
+}

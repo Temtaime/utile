@@ -17,6 +17,7 @@
 			],
 			"libs-windows": [
 				"$PACKAGE_DIR/deps/curl-impersonate/curl-impersonate",
+				"bcrypt",
 				"crypt32",
 				"wldap32",
 				"normaliz",

@@ -246,10 +246,30 @@ unittest
 	enum File = `__tmp`;
 	serializeFile(File, t);
 
+	assert(read(File) == data);
+
 	scope (exit)
 	{
 		std.file.remove(File);
 	}
 
 	assert(deserializeFile!Test(File) == t);
+}
+
+unittest
+{
+	static struct A
+	{
+		@(ArrayLength!ushort) ubyte[ubyte] aa;
+	}
+
+	A a;
+	a.aa = [1: 4];
+
+	const(ubyte)[] data = [
+		1, 0, // aa.length
+		1, 4, // aa
+	];
+
+	ensureResult(a, data);
 }

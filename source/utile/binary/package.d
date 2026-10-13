@@ -11,22 +11,45 @@ size_t writeLength(T)(in T value, string file = __FILE__, uint line = __LINE__)
 		.written;
 }
 
-void serializeFile(T)(string name, in T value, string file = __FILE__, uint line = __LINE__)
+version (Emscripten)
 {
-	scope mm = new MmFile(name, MmFile.Mode.readWriteNew, writeLength(value, file, line), null);
+	void serializeFile(T)(string name, in T value, string file = __FILE__, uint line = __LINE__)
+	{
+		auto f = File(name, `wb`);
 
-	mm[]
-		.Serializer!MemoryStream
-		.write(value, true, file, line);
+		f
+			.Serializer!FileStream
+			.write(value, true, file, line);
+	}
+
+	T deserializeFile(T)(string name, string file = __FILE__, uint line = __LINE__)
+	{
+		auto f = File(name);
+
+		return f
+			.Serializer!FileStream
+			.read!T(true, file, line);
+	}
 }
-
-T deserializeFile(T)(string name, string file = __FILE__, uint line = __LINE__)
+else
 {
-	scope mm = new MmFile(name);
+	void serializeFile(T)(string name, in T value, string file = __FILE__, uint line = __LINE__)
+	{
+		scope mm = new MmFile(name, MmFile.Mode.readWriteNew, writeLength(value, file, line), null);
 
-	return mm[]
-		.Serializer!MemoryStream
-		.read!T(true, file, line);
+		mm[]
+			.Serializer!MemoryStream
+			.write(value, true, file, line);
+	}
+
+	T deserializeFile(T)(string name, string file = __FILE__, uint line = __LINE__)
+	{
+		scope mm = new MmFile(name);
+
+		return mm[]
+			.Serializer!MemoryStream
+			.read!T(true, file, line);
+	}
 }
 
 ubyte[] serializeMem(T)(in T value, string file = __FILE__, uint line = __LINE__)
@@ -106,10 +129,13 @@ private:
 
 		bool errorCheck(T)(const(T)* tmp, const(T)* p)
 		{
-			return throwError!"variable %s mismatch(%s when %s expected)"(file, line, variableName, *tmp, *p);
+			throwError!"variable %s mismatch(%s when %s expected)"(file, line, variableName, *tmp, *p);
 		}
 
-		bool errorValid(T)(T* p) => throwError!"variable %s has invalid value %s"(file, line, variableName, *p);
+		bool errorValid(T)(T* p)
+		{
+			throwError!"variable %s has invalid value %s"(file, line, variableName, *p);
+		}
 	}
 
 	pragma(inline, true) void doProcess(bool Writing, T, P)(ref T data, ref P parent)
@@ -209,7 +235,7 @@ private:
 
 				struct AA
 				{
-					mixin(`@(` ~ [attrs].to!string[1 .. $ - 1] ~ `) Pair[] ` ~ name ~ `;`);
+					mixin('@' ~ attrs.stringof ~ ` Pair[] ` ~ name ~ ';');
 				}
 
 				AA aa;
@@ -271,7 +297,9 @@ private:
 						const size_t elemsCnt = LenAttr(evaluateData);
 
 						static if (Writing && !isZeroTerminated)
+						{
 							assert(p.length == elemsCnt);
+						}
 
 						enum isRest = false;
 					}

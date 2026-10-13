@@ -104,7 +104,7 @@ final class Requests
 
 	void wakeup() nothrow @nogc
 	{
-		curl_multi_wakeup(_m);
+		ignoreNoGC(&curl_multi_wakeup, _m);
 	}
 
 	void abort(Job j)

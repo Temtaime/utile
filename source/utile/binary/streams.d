@@ -1,5 +1,5 @@
 module utile.binary.streams;
-import std.mmfile, utile.binary, utile.misc, utile.except;
+import std.traits, std.stdio, std.mmfile, utile.binary, utile.misc, utile.except;
 
 struct MemoryStream
 {
@@ -23,7 +23,9 @@ struct MemoryStream
 	bool read(ref ubyte[] v, size_t len)
 	{
 		if (length < len)
+		{
 			return false;
+		}
 
 		v = _p[0 .. len].dup;
 		_p += len;
@@ -35,22 +37,22 @@ struct MemoryStream
 	{
 		auto start = cast(E*)_p;
 
-		auto t = start;
-		auto r = length / E.sizeof;
-
-		for (; r && *t && maxLen; r--, t++, maxLen--)
+		for (; maxLen; maxLen--)
 		{
+			if (length < E.sizeof)
+			{
+				return false;
+			}
+
+			auto c = *cast(E*)_p;
+			_p += E.sizeof;
+
+			if (!c)
+				break;
 		}
 
-		if (r || !maxLen)
-		{
-			v = start[0 .. t - start].dup;
-			_p = cast(ubyte*)(t + (maxLen ? 1 : 0));
-
-			return true;
-		}
-
-		return false;
+		v = start[0 .. (cast(E*)_p - start) - !!maxLen].dup;
+		return true;
 	}
 
 	bool write(in ubyte[] v)
@@ -82,16 +84,8 @@ struct MemoryStream
 		return true;
 	}
 
-	const data()
-	{
-		return _p[0 .. length];
-	}
-
-	const length()
-	{
-		return _end - _p;
-	}
-
+	const data() => _p[0 .. length];
+	const length() => _end - _p;
 private:
 	ubyte* _p, _end;
 }
@@ -110,10 +104,7 @@ struct AppendStream
 		return true;
 	}
 
-	const length()
-	{
-		return 0;
-	}
+	const length() => 0;
 
 	ubyte[] data;
 }
@@ -132,11 +123,81 @@ struct LengthCalcStream
 		return true;
 	}
 
-	const length()
-	{
-		return 0;
-	}
-
+	const length() => 0;
 private:
 	mixin publicProperty!(size_t, `written`);
+}
+
+struct FileStream
+{
+	this(ref File f)
+	{
+		_f = &f;
+	}
+
+	bool read(ubyte[] v) => _f.rawRead(v).length == v.length;
+
+	bool read(ref ubyte[] v, size_t len) // FIXME ?
+	{
+		v = new ubyte[len];
+		return read(v);
+	}
+
+	bool readstr(E)(ref E[] v, size_t maxLen)
+	{
+		Unqual!E e;
+
+		for (; maxLen; maxLen--)
+		{
+			if (read(e.toByte))
+			{
+				if (e)
+				{
+					v ~= e;
+				}
+				else
+					break;
+			}
+			else
+				return false;
+		}
+
+		return true;
+	}
+
+	bool write(in ubyte[] v)
+	{
+		_f.rawWrite(v);
+		return true;
+	}
+
+	bool rskip(size_t cnt)
+	{
+		if (cnt)
+		{
+			_f.seek(cnt - 1, SEEK_CUR);
+
+			ubyte v;
+			return _f.rawRead(v.toByte).length == 1;
+		}
+
+		return true;
+	}
+
+	bool wskip(size_t cnt)
+	{
+		if (cnt)
+		{
+			_f.seek(cnt - 1, SEEK_CUR);
+
+			ubyte v;
+			_f.rawWrite(v.toByte);
+		}
+
+		return true;
+	}
+
+	auto length() => _f.size - _f.tell;
+private:
+	File* _f;
 }
