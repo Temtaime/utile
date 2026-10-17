@@ -207,7 +207,7 @@ private:
 
 			static if (Reading)
 			{
-				static if (is(R == immutable))
+				static if (is(R == immutable)) // FIXME: verify for ldc bugs
 				{
 					Unqual!R tmp;
 					auto varPtr = &tmp;
