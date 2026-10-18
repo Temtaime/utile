@@ -34,7 +34,7 @@ These rules incorporate `.github/copilot-instructions.md` and apply to all sourc
 - `source/utile/db/`: database interface, transaction helper, and shared query mixins. Database implementations such as SQLite extend this layer.
 - `source/utile/time/`, `encoding/`, and the root utility modules: reusable time, encoding, encryption, I/O, memory, string, container, exception, and miscellaneous functionality.
 - `utile-curl/`: `utile.curl` bindings and request/job abstractions over curl-impersonate. `utile.updater` is built on `utile.curl` and provides update checking, downloading, and verification.
-- `utile-sqlite/`: `utile.db.sqlite`, the SQLite implementation of the root database abstraction.
+- `utile-sqlite/`: `utile.db.sqlite`, the SQLite implementation of the root database abstraction, including typed PRAGMA configuration and incremental BLOB access through `SQLiteBlob`.
 - `utile-zip/`: `utile.miniz`, a ZIP archive wrapper over miniz.
 - `utile-web/`: `utile.web`, a MicroHTTPD-based server with connection and handler abstractions. It uses root networking, headers, logging, and time utilities.
 - `utile-tun/`: `utile.tun`, a TUN device abstraction with Linux and system-level implementations. It uses root networking for IP and MTU helpers.

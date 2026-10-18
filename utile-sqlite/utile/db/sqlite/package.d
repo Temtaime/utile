@@ -3,6 +3,9 @@ import std, utile.except, utile.db, utile.misc;
 
 import utile_sqlite;
 
+public import utile.db.sqlite.blob;
+public import utile.db.sqlite.pragmas;
+
 shared static this()
 {
 	sqlite3_initialize() == SQLITE_OK || throwError!`failed to initialize sqlite`;
@@ -19,9 +22,9 @@ final class SQLite : Db
 	{
 		sqlite3_open(name.toStringz, &_db) == SQLITE_OK || error;
 
-		query(`PRAGMA foreign_keys = ON;`);
-		query(`PRAGMA temp_store = MEMORY;`);
-		query(`PRAGMA synchronous = NORMAL;`);
+		pragma_(ForeignKeys.on);
+		pragma_(TempStore.memory);
+		pragma_(Synchronous.normal);
 	}
 
 	~this()
@@ -41,6 +44,16 @@ final class SQLite : Db
 		}
 
 		sqlite3_backup_step(bk, -1) == SQLITE_DONE || error;
+	}
+
+	mixin Pragma;
+
+	SQLiteBlob openBlob(string table, string column, long rowId, bool write = false, string database = MAIN_DB)
+	{
+		sqlite3_blob* z;
+		sqlite3_blob_open(_db, database.toStringz, table.toStringz, column.toStringz, rowId, write ? 1 : 0, &z) == SQLITE_OK || error;
+
+		return SQLiteBlob(_db, z);
 	}
 
 	mixin DbBase;
