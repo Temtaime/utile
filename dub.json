@@ -35,7 +35,7 @@
 				"-L$PACKAGE_DIR/deps/curl-impersonate"
 			],
 			"libs-linux": [
-				"c++abi"
+				"c++"
 			],
 			"sourcePaths": [
 				"utile-curl"
