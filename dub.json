@@ -12,20 +12,31 @@
 		{
 			"name": "curl",
 			"description": "CURL binding",
+			"libs": [
+				"curl-impersonate"
+			],
 			"cImportPaths": [
 				"$PACKAGE_DIR/deps/curl-impersonate/include"
 			],
+			"lflags-windows": [
+				"/LIBPATH:$PACKAGE_DIR/deps/curl-impersonate"
+			],
 			"libs-windows": [
-				"$PACKAGE_DIR/deps/curl-impersonate/curl-impersonate",
 				"bcrypt",
 				"crypt32",
 				"wldap32",
 				"normaliz",
 				"iphlpapi"
 			],
-			"lflags-linux": [
-				"$PACKAGE_DIR/deps/curl-impersonate/libcurl-impersonate_$ARCH.a",
-				"-lc++abi"
+			"lflags-linux-aarch64": [
+				"-L$PACKAGE_DIR/deps/curl-impersonate/aarch64"
+			],
+			"lflags-linux-x86_64": [
+				"-L$PACKAGE_DIR/deps/curl-impersonate"
+			],
+			"libs-linux": [
+				"c++",
+				"c++abi"
 			],
 			"sourcePaths": [
 				"utile-curl"

@@ -127,13 +127,11 @@ package:
 			option(CURLOPT_ACCEPT_ENCODING, &zero); // allow all encodings
 		}
 
-		// FIXME : centos bug
+		version (linux)
 		{
-			enum CERT = `/etc/pki/tls/certs/ca-bundle.crt`;
-
-			if (CERT.exists)
+			if (auto path = caBundlePath)
 			{
-				option(CURLOPT_CAINFO, CERT);
+				option(CURLOPT_CAINFO, path);
 			}
 		}
 
@@ -212,6 +210,23 @@ package:
 
 	@property handle() => _handle;
 private:
+	static string caBundlePath()
+	{
+		static immutable certs = [
+			`ssl/certs/ca-certificates.crt`,
+			`pki/ca-trust/extracted/pem/tls-ca-bundle.pem`,
+			`pki/tls/certs/ca-bundle.crt`,
+			`ssl/ca-bundle.pem`,
+			`ssl/cert.pem`
+		];
+
+		auto path = certs
+			.map!(a => `/etc/` ~ a)
+			.find!(a => a.isFile);
+
+		return path.length ? path[0] : null;
+	}
+
 	AppTimeMeter _meter;
 
 	curl_slist* _headers;

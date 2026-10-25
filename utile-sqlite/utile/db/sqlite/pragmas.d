@@ -82,7 +82,7 @@ mixin template Pragma()
 
 	void busyTimeout(Duration timeout)
 	{
-		sqlite3_busy_timeout(_db, cast(int)timeout.total!`msecs`) == SQLITE_OK || error;
+		sqlite3_busy_timeout(_db, cast(uint)timeout.total!`msecs`) == SQLITE_OK || error;
 	}
 
 	void vacuum()
