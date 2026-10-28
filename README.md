@@ -57,6 +57,9 @@ Detailed module documentation:
 
 Bindings and higher-level request handling over curl-impersonate.
 
+- [cURL requests and jobs](docs/curl.md)
+- [Application updater](docs/updater.md)
+
 | Module | Contents |
 | --- | --- |
 | `utile.curl` | cURL initialization and common HTTP enums. |

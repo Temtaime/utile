@@ -23,7 +23,7 @@ Supported field shapes are:
 | Associative array | Array of key/value pairs; requires an array-length attribute |
 | String | NUL-terminated by default |
 
-Only structs can be top-level values. Functions and fields marked `@Ignored` are not serialized. At a shared offset, such as a union, one field is selected rather than serializing every overlapping member; avoid unions in a stable format unless that selection is intentional.
+Only structs can be top-level values. Functions and fields marked `@Ignored` are not serialized. A `static immutable` field is serialized and checked against its declared value while reading. At a shared offset, such as a union, one field is selected rather than serializing every overlapping member; avoid unions in a stable format unless that selection is intentional.
 
 ## Quick Start
 
@@ -100,7 +100,7 @@ Attributes control the wire layout and read-time checks.
 | `@Default!function` | Sets a skipped-on-read field to a computed value. Use with `IgnoreIf`. |
 | `@Validate!function` | Rejects a read value when the predicate is false. |
 
-The `input`, `parent`, `that`, and `stream` arguments provided to attribute functions expose the root input, containing struct, current field, and active stream respectively. For example, a field can be conditioned on another field in the same struct:
+The `input`, `parent`, `that`, and `stream` arguments provided to attribute functions expose the root input, containing struct, struct whose field is being processed, and active stream respectively. At the top level, `parent` and `that` refer to the same struct. For example, a field can be conditioned on another field in the same struct:
 
 ```d
 struct OptionalData
@@ -178,7 +178,7 @@ struct Bmp
 // 36 00 00 00       // pixelsOffset: 54
 ```
 
-BMP stores these fields little-endian, so this example targets the supported little-endian platforms. `signature` is checked by the deserializer itself: a value other than `BM` raises an error. The computed length means an inconsistent file is rejected instead of silently treating arbitrary trailing bytes as pixels. The [integration test](../utile-test/binary.d#L301-L322) downloads [`bmp_24.bmp`](https://people.math.sc.edu/Burkardt/data/bmp/bmp_24.bmp), parses it with `deserializeMem`, and verifies its `200 x 200` dimensions and 24-bit pixel depth.
+BMP stores these fields little-endian, so this example targets the supported little-endian platforms. `signature` is checked by the deserializer itself: a value other than `BM` raises an error. The computed length means an inconsistent file is rejected instead of silently treating arbitrary trailing bytes as pixels. The [integration test](../utile-test/binary.d#L294-L345) downloads [`bmp_24.bmp`](https://people.math.sc.edu/Burkardt/data/bmp/bmp_24.bmp), parses it with `deserializeMem`, and verifies its `200 x 200` dimensions and 24-bit pixel depth.
 
 ## Error Handling
 
