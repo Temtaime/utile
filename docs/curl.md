@@ -22,6 +22,7 @@ import utile.curl;
 import std;
 import utile;
 import utile.curl;
+import utile.net.headers;
 
 scope requests = new Requests(logger);
 auto job = requests.create(`https://example.com/data`);
@@ -61,6 +62,15 @@ Call the configuration methods before driving `Requests.run`.
 
 `Browser` lists the browser profiles bundled with curl-impersonate. The profile is an explicit compatibility choice, not a general replacement for application headers or authentication.
 
+Use `utile.net.headers.Header` for outgoing standard header names. Response-header keys are lowercase, so look them up with `HeaderNormalized`:
+
+```d
+job.header(Header.accept, `application/json`);
+
+// Read after the job completes.
+auto contentType = job.responseHeaders.get(HeaderNormalized.contentType, null);
+```
+
 ## Upload and Stream Data
 
 `upload(data)` sends a fixed byte buffer. For a producer that supplies data incrementally, call `upload` and set `onRead`; return the number of bytes written into the supplied buffer. `onRead` can return `Read.pause` or `Read.abort`.
@@ -70,6 +80,7 @@ Set `onWrite` to consume response chunks without accumulating them in `job.data`
 ```d
 auto job = requests.create(`https://example.com/upload`);
 job.method(Method.put);
+job.header(Header.contentType, `application/octet-stream`);
 job.upload(cast(const(ubyte)[])`payload`);
 
 ubyte[] response;

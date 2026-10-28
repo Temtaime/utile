@@ -98,6 +98,8 @@ ZIP archive access over miniz.
 
 MicroHTTPD-based HTTP server.
 
+- [MicroHTTPD web server](docs/web.md)
+
 | Module | Contents |
 | --- | --- |
 | `utile.web` | `WebServer`, route registration, and integration with `utile.net.ThreeSet`. |
