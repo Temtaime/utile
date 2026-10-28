@@ -1,4 +1,4 @@
-import std, utile, utile.binary.helpers;
+import std, utile, utile.binary.helpers, utile.curl;
 
 void ensureResult(T)(in T value, const(ubyte)[] data)
 {
@@ -35,6 +35,23 @@ unittest
 	];
 
 	ensureResult(a, data);
+}
+
+unittest
+{
+	static struct OptionalData
+	{
+		bool hasData;
+		@(IgnoreIf!(a => !a.that.hasData), Default!(_ => cast(ubyte)0)) ubyte data;
+	}
+
+	auto present = OptionalData(true, 7);
+	ensureResult(present, [1, 7]);
+
+	auto absent = OptionalData(false, 7);
+	const(ubyte)[] absentData = [0];
+	assert(absent.serializeMem == absentData);
+	assert(absentData.deserializeMem!OptionalData == OptionalData(false, 0));
 }
 
 unittest
@@ -272,4 +289,57 @@ unittest
 	];
 
 	ensureResult(a, data);
+}
+
+unittest
+{
+	static struct Bmp
+	{
+		size_t pixelsLength() const
+		{
+			long rowLength = (cast(long)width * bitsPerPixel + 31) / 32 * 4;
+			return cast(size_t)(rowLength * abs(height));
+		}
+
+		static immutable char[2] signature = `BM`;
+		uint fileSize;
+		ushort reserved1;
+		ushort reserved2;
+		uint pixelsOffset;
+
+		uint dibHeaderSize;
+		int width;
+		int height;
+		ushort planes;
+		ushort bitsPerPixel;
+		uint compression;
+		uint imageSize;
+		int xPixelsPerMeter;
+		int yPixelsPerMeter;
+		uint colorsUsed;
+		uint colorsImportant;
+
+		@ArrayLength!(a => a.that.pixelsLength) ubyte[] pixels;
+	}
+
+	scope req = new Requests(logger);
+	auto job = req.create(`https://people.math.sc.edu/Burkardt/data/bmp/bmp_24.bmp`);
+
+	while (!job.done)
+	{
+		req.wait;
+		req.run;
+	}
+
+	assert(!job.hasError);
+	assert(job.code == 200);
+
+	auto bmp = job.data.deserializeMem!Bmp;
+
+	assert(bmp.dibHeaderSize == 40); // BITMAPINFOHEADER
+	assert(bmp.planes == 1);
+	assert(bmp.bitsPerPixel == 24);
+	assert(bmp.compression == 0);
+	assert(bmp.width == 200);
+	assert(bmp.height == 200);
 }

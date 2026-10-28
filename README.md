@@ -47,6 +47,10 @@ Additional root modules can be imported directly:
 | `utile.encoding` | Text encoding conversion, using Windows charset APIs or iconv. |
 | `utile.db.mysql` | Conditional MySQL binding, enabled with the `Utile_Mysql` version. |
 
+Detailed module documentation:
+
+- [`utile.binary`](docs/binary.md): binary layout rules, field attributes, streams, and examples.
+
 ## Subpackages
 
 ### `utile:curl`
