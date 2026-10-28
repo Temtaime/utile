@@ -67,19 +67,17 @@ size_t headersFunc(char* buffer, size_t size, size_t nitems, void* userdata)
 {
 	assert(size == 1);
 
-	auto s = buffer[0 .. nitems].assumeUnique.strip;
+	auto s = buffer[0 .. nitems]
+		.assumeUnique
+		.strip;
+
 	auto self = cast(Job)userdata;
 
 	with (self)
 	{
 		if (s.empty)
 		{
-			if (onHeaders)
-			{
-				onHeaders(self);
-			}
-
-			return nitems;
+			return onHeaders is null || onHeaders(self) ? nitems : Write.abort;
 		}
 
 		if (s.startsWith(`HTTP/`))

@@ -113,7 +113,7 @@ final class Job : JobBase
 	uint delegate(Job, ubyte[] data) onRead;
 	uint delegate(Job, ubyte[] data) onWrite;
 
-	void delegate(Job) onHeaders;
+	bool delegate(Job) onHeaders;
 	void delegate(Job) onComplete;
 
 	SubLogger logger;
