@@ -50,6 +50,7 @@ Additional root modules can be imported directly:
 Detailed module documentation:
 
 - [`utile.binary`](docs/binary.md): binary layout rules, field attributes, streams, and examples.
+- [`utile.db` and `utile:sqlite`](docs/db.md): transactions, typed queries, SQLite configuration, and BLOB I/O.
 
 ## Subpackages
 
@@ -76,6 +77,8 @@ Bindings and higher-level request handling over curl-impersonate.
 ### `utile:sqlite`
 
 SQLite implementation of `utile.db`.
+
+- [Database layer and SQLite](docs/db.md)
 
 | Module | Contents |
 | --- | --- |
